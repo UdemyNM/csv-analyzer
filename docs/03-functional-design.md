@@ -1,0 +1,142 @@
+# 03. 機能設計
+
+テストの元になる仕様。各ユーティリティは純粋関数とし、入出力と境界条件を明記する。
+
+## 1. 画面一覧
+| 画面 | パス | 概要 |
+|---|---|---|
+| ログイン | `/login` | メール＋パスワード（新規登録画面なし。ユーザーは管理者が作成） |
+| データセット一覧＋アップロード | `/` | 上にCSVのドロップ枠（ドロップ／ファイル選択で、その場でアップロードして分析画面へ）、下に自分＋全員公開のデータセット一覧 |
+| データセット詳細（分析） | `/datasets/:id` | フィルタバー＋縦1列の開閉セクション: データ表 → グラフ → 集計 → 統計・相関。ビュー選択・保存 |
+
+- 旧「アップロード画面（`/upload`）」は廃止し、一覧画面に統合した（2回目のデザイン修正）
+- アップロード時の名前・公開範囲の入力欄はなくした。名前はファイル名、公開範囲の変更・名前の変更は詳細画面で行う。**アップロード直後の公開範囲は「非公開」**（`DatasetRepository.create` の `visibility` に `'private'` を渡す）
+
+### 詳細画面のレイアウト（案B。詳細は 05-ui-design.md）
+```
+┌ データセット名 [公開範囲][非公開にする] 行数・列数  ビュー[選択▼][保存] ┐
+├ フィルタバー: [条件チップ×][＋条件]        並べ替え[選択▼] ┤
+├ ▼ データ表（フィルタ後の先頭N行＋ページング）      [開閉] ─┤
+├ ▼ グラフ（軸・種類の選択つき）                     [開閉] ─┤
+├ ▼ 集計（グループ化・指標＋集計結果の表）           [開閉] ─┤
+├ ▼ 統計・相関（基本統計／相関行列。「？」で用語解説）[開閉] ─┤
+└──────────────────────────────────────────────────────────────┘
+```
+- フィルタ・並べ替えはセクションの外に置き、全セクションに適用する
+- 各セクションは見出し右端の開閉ボタンで表示/非表示にできる（初期状態はすべて開く）
+- 基本統計の列見出しと相関行列の見出しに「？」ボタンを置き、押すと用語の短い解説を表示する
+- 狭い幅ではセクション内の部品を縦に積み、表は横スクロールの箱に入れる
+- 集計（グループ化＋指標）は独立した「集計」セクションに置く（モックにも反映済み）。グラフは、集計があるとき集計結果を元データにする（7 章）
+
+## 2. ユーティリティ仕様（純粋関数）
+
+### 2.1 `detectEncoding(buffer) → 'utf-8' | 'shift_jis'`
+- BOMがあればUTF-8
+- `TextDecoder('utf-8', {fatal:true})` で成功すればUTF-8、例外ならShift_JIS
+- 空バッファはUTF-8
+
+### 2.2 `parseCsv(text) → { headers: string[], rows: object[] }`
+- 1行目をヘッダー、2行目以降をデータ。各行は `{ヘッダー名: 文字列}`
+- ダブルクォート・改行含みセル・カンマを正しく扱う
+- 末尾の空行は無視。ヘッダー重複は `name`, `name_2` のように連番で一意化
+- ヘッダーのみ（データ0行）は rows=[] で成功。空文字列は `EmptyCsvError`
+- 列数が足りない行は不足分を空文字で補う
+
+### 2.3 `inferColumnTypes(headers, rows) → [{name, type}]`
+- `type` は `'number' | 'date' | 'string'`
+- 空欄を除いた値が**すべて**数値として解釈できれば number（カンマ区切り `1,234` も許容）
+- すべて日付（`YYYY-MM-DD`, `YYYY/MM/DD`）なら date、それ以外は string
+- 全て空欄の列は string
+
+### 2.4 `filterRows(rows, filters) → rows`
+- `filters: [{column, op, value}]`、複数条件はAND
+- `op`: `eq, ne, contains, gt, gte, lt, lte`（gt系は number/date 列のみ）
+- 空条件は全件返す。存在しない列は無視せず `InvalidFilterError`
+- （Phase 2 確定）列の型は `filterRows` が渡された `rows` から `inferColumnTypes` で内部推定する（シグネチャは変えない）
+- （Phase 2 確定）gt系を number/date 以外の列に使うと `InvalidFilterError`。空欄セルは gt/gte/lt/lte のどれにも一致しない（eq/ne は文字列として比較）
+- （Phase 2 確定）`InvalidFilterError` は `src/utils/filterRows.js` から export する
+- （Phase 2 実装時の決定）未対応の `op`、gt系の条件値が列の型として解釈できない場合も `InvalidFilterError`。`eq/ne` は文字列の完全一致（number 列でも `"5"` と `"5.0"` は別）、`contains` は大文字小文字を区別する。`rows` が空なら列の存在を確認できないため、エラーにせず `[]` を返す
+- 数値・日付の解釈は `src/utils/parseValue.js`（`parseNumber`, `normalizeDate`）に集約し、`inferColumnTypes` と同じ正規表現を使う
+
+### 2.5 `sortRows(rows, {column, direction}, columnType)`
+- number は数値順、date は日付順、string は日本語ロケール順
+- 空欄は昇順・降順とも最後尾。安定ソート。元配列は変更しない
+- （Phase 2 実装時の決定）列の型で解釈できない値（number 列の `"abc"` など）も空欄と同様に最後尾。不正な `direction` / `columnType` は `RangeError`。存在しない列は全行が空欄扱いになり、元の順序のまま返す
+
+### 2.6 `aggregate(rows, {groupBy, metrics}) → rows`
+- `metrics: [{column, fn}]`、`fn`: `sum, avg, count, min, max`
+- 出力の列名は `<column>_<fn>`（例 `sales_sum`）。`count` は `count`
+- 数値として解釈できない/空欄は sum/avg/min/max から除外
+- groupBy 空なら全体を1行に集計
+- （Phase 2 確定）`count` はそのグループの行数（空欄・非数値も数える）。`count` の metric は `column` を省略できる
+- （Phase 2 確定）「合計」行の扱い: 集計関数は合計行を判別しない。Excel 書き出しの合計行（例: `sales_excel_sjis.csv` の `店舗=合計`）は、呼び出し側が `filterRows` の `ne` で除いてから渡す。含めると合計が2倍になる
+- （Phase 2 実装時の決定）グループの出力順は、各グループが最初に現れた順。グループ内に有効な数値が0件のとき、`sum` は 0、`avg/min/max` は `null`。不正な `fn` は `RangeError`。存在しない列は全セル空欄として扱う（`groupBy` ではキーが空文字になる）。`rows` が空なら `groupBy` が空でも `[]`
+
+### 2.7 `statistics(values) → {count, missing, mean, median, stdDev, min, max}`
+- 数値列のみ対象。空欄は `missing` に数え、計算から除外
+- 標準偏差は**標本標準偏差（不偏分散の平方根、n-1 で割る）に確定**（Phase 2）。有効値が1件のとき `stdDev` は `null`（n-1=0 で定義できない）
+- 有効値が0件のとき mean 等は `null`
+- （Phase 2 確定）`values` は文字列配列（`parseCsv` の値そのまま。`1,234` 形式も数値扱い）。`count` は**有効値の件数**（空欄を含まない）で、`count + missing` が全要素数
+- （Phase 2 実装時の決定）数値として解釈できない文字列（`"abc"`）も空欄と同じく `missing` に数え、計算から除外する
+
+### 2.8 `correlation(columnsValues) → matrix`
+- ピアソン相関係数。2列の欠損は行単位で除外（ペアワイズ）
+- 分散0の列との相関は `null`。対角は 1
+- （Phase 2 確定）入力 `columnsValues` は列ごとの文字列配列の配列（`string[][]`、全列同じ長さ）、出力は `(number|null)[][]`（列の並び順と同じ添字の対称行列）。有効なペアが2件未満（分散0と同義）の組は `null`
+- （Phase 2 実装時の決定）対角は、その列の分散が0・全空欄でも常に 1（`null` は対角以外にだけ使う）。分散0は丸め誤差を避けるため「有効ペアの値がすべて同じ」で判定する。数値でない値は空欄と同じくペアから除外する
+- （Phase 2 計測）50,000 行で filter / sort / aggregate / statistics / correlation は各 40ms 以下（要件の 2 秒に対し十分余裕あり。`tests/analysisPerformance.test.jsx`）
+
+## 3. リポジトリ・インターフェース（JSDoc で型定義）
+```
+AuthRepository:
+  signIn(email, password) / signOut()   // サインアップはアプリに実装しない（管理者がユーザー作成）
+  getCurrentUser() / onAuthChange(cb)
+
+DatasetRepository:
+  list()                          // 閲覧可能なものだけ返す
+  get(id)
+  create({name, visibility, file, meta})
+  update(id, {name?, visibility?}) // 作成者のみ。他人は PermissionError
+  remove(id)                       // 作成者のみ
+  downloadCsv(id) → ArrayBuffer
+
+ViewRepository:
+  listByDataset(datasetId)
+  create({datasetId, name, config})
+  update(id, {name?, config?}) / remove(id)   // 作成者のみ
+```
+- Local実装・Supabase実装の双方が**同じ契約テスト**を通ること
+
+## 4. エラーと表示
+| 事象 | 挙動 |
+|---|---|
+| 10MB超 / .csv以外 | アップロード前に弾き、理由をドロップ枠の中に表示（分析画面へは移らない） |
+| 空ファイル | 「データがありません」（ドロップ枠の中に表示） |
+| 文字化けの疑い | プレビューを見せ、再読込時に文字コード手動指定を可能に（任意） |
+| 権限なし | 一覧に出さない。URL直打ちは「見つかりません」 |
+| 通信エラー | 再試行ボタン付きで表示 |
+
+## 5. ビュー設定（`config`）の検証
+- 保存時に、参照列がデータセットの列に存在するか検証
+- 読み込み時に存在しない列があれば、その条件だけ無効化して警告表示
+
+## 6. テスト観点（tests/）
+| 対象 | 主なケース |
+|---|---|
+| detectEncoding | UTF-8/BOM付き/Shift_JIS/空 |
+| parseCsv | クォート・改行入りセル・重複ヘッダー・不足列・空・末尾空行 |
+| inferColumnTypes | 数値/カンマ数値/日付/混在→string/全空 |
+| filter/sort | 各op・型別順序・空欄の位置・元配列不変 |
+| aggregate | 単一/複数キー・各fn・非数値除外・groupBy空 |
+| statistics/correlation | 既知値、欠損、分散0、1件のみ |
+| Repository契約 | 作成者のみ更新削除、shared/privateの可視性 |
+| コンポーネント | ドロップ枠のバリデーション・ドラッグ中表示、一覧の出し分け、セクションの開閉、「？」解説の開閉 |
+
+## 7. 詳細画面（`/datasets/:id`）の実装時の決定（Phase 5・6）
+- 読み込み: `DatasetRepository.get`（見えない・無いは `NotFoundError` → 見出し「見つかりません」）→ `downloadCsv` → Worker でパース（`useCsvAnalysis`）。通信・パースの失敗は alert と「再試行」
+- 概要欄は「データセット名・公開範囲バッジ・行数×列数・文字コード・作成者」。作成者本人にだけ、公開範囲の切替・名前の変更・削除（`window.confirm` で確認）を出す。成功したら一覧の状態を取り直す
+- 設定（フィルタ・並べ替え・集計・グラフ）は詳細画面が持つ（= `views.config` と同じ形）。全セクション（データ表・グラフ・集計・統計・相関）が「フィルタ → 並べ替え」後の行を使う
+- 集計があるとき、グラフの元データは集計結果（X軸の選択肢は groupBy の列と指標の出力名、Y軸は指標の出力名）。集計がないときは絞り込み後の行。集計を外して軸が消えたら、グラフは描かない
+- 画面から追加する条件が `InvalidFilterError` になる値（例: 売上 > "abc"）は、追加せずに理由を alert で出す。保存済みビュー由来で不正な条件があるときは、絞り込まずに全件を出し、理由を alert で出す
+- ビュー: 保存する `config` は、グラフの軸を「今の元データにある列」に絞った `{ filters, sort, aggregation, chart }`。「編集」は、名前と今の設定で上書きする。削除は `window.confirm` で確認。他人のビューは選んで見られるが、編集・削除は出さない
+- 性能（本番ビルド・10MB・252,712行の実測）: 詳細を開く 約1.0秒、フィルタ 約0.1秒、25万行の並べ替え 約0.2秒、集計 約0.1〜0.5秒、グラフ（2,000点に間引き）0.5〜0.8秒。詳細画面は Recharts を含むため、`React.lazy` で開くときに読み込む（初期 JS 718 KB → 276 KB）。折れ線は 101 点以上で点（dot）を描かない

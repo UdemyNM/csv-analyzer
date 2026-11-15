@@ -1,0 +1,6 @@
+{
+  "name": "usage-line",
+  "version": "0.1.0",
+  "description": "プロンプトの上に、会話の使用量と使用量の枠を 1 行で出す。区切りどきを知らせる（VS Code でも出る）",
+  "author": { "name": "Your Name" }
+}

@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(./**)",
+      "Write(./**)",
+      "Bash(rm .scratchpad/*)",
+      "Bash(rm -r .scratchpad/*)",
+      "Bash(rm -rf .scratchpad/*)",
+      "PowerShell(Remove-Item .scratchpad/*)",
+      "PowerShell(Remove-Item -Recurse .scratchpad/*)",
+      "Bash(git add *)",
+      "PowerShell(git add *)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git reset *)",
+      "Bash(git rebase *)",
+      "Bash(git merge *)",
+      "Bash(git clean *)",
+      "Bash(git branch -D *)",
+      "PowerShell(git commit *)",
+      "PowerShell(git push *)",
+      "PowerShell(git reset *)",
+      "PowerShell(git rebase *)",
+      "PowerShell(git merge *)",
+      "PowerShell(git clean *)",
+      "PowerShell(git branch -D *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/format.js"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "security-guidance@claude-plugins-official": true,
+    "engineering@knowledge-work-plugins": true
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "description": "tool-counter の hooks module",
+  "modules": ["./register.js"]
+}

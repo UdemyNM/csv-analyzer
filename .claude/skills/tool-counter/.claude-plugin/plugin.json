@@ -1,0 +1,6 @@
+{
+  "name": "tool-counter",
+  "version": "0.1.0",
+  "description": "スピナーの横に、ツールの呼び出し回数と、サブエージェントの数を出す",
+  "author": { "name": "Your Name" }
+}

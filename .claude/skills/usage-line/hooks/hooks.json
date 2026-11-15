@@ -1,0 +1,4 @@
+{
+  "description": "usage-line の hooks module",
+  "modules": ["./register.js"]
+}

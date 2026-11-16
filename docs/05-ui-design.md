@@ -1,7 +1,10 @@
 # 05. 画面設計（UIデザイン：案B 採用）
 
 分析画面を3案（A：3ペイン / B：フィルタバー＋単一カラム / C：ビュー中心）で比較し、**案B**を採用した。
-モックアップ: https://claude.ai/artifact/GRQmaAoPfrLiVujRj4D97Z （`PlanB.dc.html`。閲覧にはオーナーの共有が必要）
+**正とするモック**: [`docs/design-mock/plan-b/`](design-mock/plan-b/README.md)（全画面のモックのファイル一式。確認用のアーティファクトのリンクも、その README にある）
+初期案のモックアップ（参考）: https://claude.ai/artifact/GRQmaAoPfrLiVujRj4D97Z （`PlanB.dc.html`。閲覧にはオーナーの共有が必要）
+
+> 注意: 正とするモックは、集計表を持たない3セクション（データ表・グラフ・統計・相関）です。この文書の以降の記述（集計セクションあり）とは、まだ食い違っています。
 
 ## 1. 採用理由
 - 要件の流れ（フィルタ → 集計 → グラフ → 統計）が、上から下へ素直に並ぶ

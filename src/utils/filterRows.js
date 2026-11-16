@@ -16,9 +16,16 @@ const COMPARISONS = {
 };
 
 // 条件 1 つを「行 → boolean」の関数にする。不正な条件はここで InvalidFilterError
-function buildPredicate(rows, { column, op, value }) {
+function buildPredicate(rows, { column, op, value, values }) {
   if (!Object.hasOwn(rows[0], column)) {
     throw new InvalidFilterError(`列「${column}」が存在しません`);
+  }
+  // 値から選ぶ（docs/superpowers/specs 6.1）。25 万行で includes を繰り返さないよう Set にする
+  if (op === "in" || op === "notIn") {
+    const set = new Set(values ?? []);
+    return op === "in"
+      ? (row) => set.has(row[column] ?? "")
+      : (row) => !set.has(row[column] ?? "");
   }
   switch (op) {
     case "eq":
@@ -56,7 +63,7 @@ function buildPredicate(rows, { column, op, value }) {
 /**
  * 条件（AND）で行を絞り込む（docs/03 2.4）。元の配列は変更しない。
  * @param {Record<string, string>[]} rows
- * @param {{ column: string, op: string, value: string }[]} filters
+ * @param {({ column: string, op: string, value: string } | { column: string, op: "in" | "notIn", values: string[] })[]} filters
  */
 export function filterRows(rows, filters) {
   if (rows.length === 0) return [];

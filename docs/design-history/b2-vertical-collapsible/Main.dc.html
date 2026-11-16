@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>データ詳細</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&amp;display=swap">
+<style>
+body{margin:0;font-family:'Noto Sans JP',system-ui,sans-serif;background:#F6F7F9;color:#1B2130;font-size:14px;line-height:1.6}
+*{box-sizing:border-box}
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ic.lg{width:26px;height:26px}
+.mi{display:inline-flex;align-items:center;gap:6px}
+a{color:#2A55D6}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.card{background:#fff;border:1px solid #DDE1E8;border-radius:12px;padding:20px}
+.btn{min-height:44px;padding:0 18px;border-radius:8px;border:1px solid #DDE1E8;background:#fff;color:#1B2130;font:inherit;font-weight:500;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.btn.pri{background:#2A55D6;border-color:#2A55D6;color:#fff}
+.sel{min-height:44px;padding:0 12px;border:1px solid #DDE1E8;border-radius:8px;background:#fff;font:inherit;color:#1B2130}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#566075;font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px 0 14px;border:1px solid #C9D3F2;background:#EEF2FD;color:#1E3FA6;border-radius:999px;font-weight:500}
+.chip button{min-width:36px;min-height:44px;border:0;background:none;color:inherit;font:inherit;font-size:18px;cursor:pointer}
+.chip.add{border-style:dashed;background:#fff;color:#2A55D6;padding:0 14px;cursor:pointer;font:inherit;font-weight:500}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+.t th{text-align:left;padding:10px 12px;background:#F6F7F9;color:#566075;font-weight:700;border-bottom:1px solid #DDE1E8;white-space:nowrap}
+.t td{padding:10px 12px;border-bottom:1px solid #EDEFF3;white-space:nowrap}
+.t .n{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;background:#E3F4EC;color:#12603A;font-size:12px;font-weight:700}
+.nav a{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:#1B2130;text-decoration:none;font-weight:500;border-radius:8px}
+.nav a.cur{background:#EEF2FD;color:#1E3FA6}
+details.sec{background:#fff;border:1px solid #DDE1E8;border-radius:12px;overflow:hidden}
+details.sec>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:8px 12px 8px 20px;cursor:pointer}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec[open]>summary{border-bottom:1px solid #DDE1E8}
+.sec h2{margin:0;font-size:16px;display:inline-flex;align-items:center;gap:8px}
+.sec h2 svg{color:#2A55D6}
+.tg{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid #DDE1E8;background:#fff;color:#1B2130;flex:none}
+.tg .ic{transition:transform .15s}
+details.sec[open] .tg .ic{transform:rotate(180deg)}
+.sum-r{display:flex;align-items:center;gap:12px;color:#566075;font-size:12px}
+.sec-b{padding:20px}
+.hd{display:inline-flex;align-items:center;gap:2px}
+.q{display:inline-flex;align-items:center;justify-content:center;width:36px;height:44px;margin:-12px -6px -12px 0;border:0;background:none;color:#2A55D6;cursor:pointer;padding:0}
+.hp{display:flex;gap:10px;align-items:flex-start;background:#EEF2FD;border:1px solid #C9D3F2;border-radius:8px;padding:12px 14px;color:#1B2130;font-size:13px}
+.hp p{margin:2px 0 0}
+.hp button{border:0;background:none;color:#1E3FA6;cursor:pointer;min-width:44px;min-height:44px;margin:-10px -10px -10px 0;display:inline-flex;align-items:center;justify-content:center}
+.cm{border-collapse:separate;border-spacing:4px;font-variant-numeric:tabular-nums}
+.cm th{padding:8px 12px;font-size:13px;font-weight:700;color:#566075;text-align:center;white-space:nowrap}
+.cm td{width:88px;height:64px;text-align:center;border-radius:8px;font-weight:700;font-size:16px}
+</style>
+</helmet>
+<header style="background:#fff;border-bottom:1px solid #DDE1E8">
+<div class="wrap" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;min-height:64px">
+<strong style="font-size:18px;color:#2A55D6;display:inline-flex;align-items:center;gap:8px"><svg class="ic lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 16v-5M12 16V7M17 16v-8"></path></svg>CSV分析</strong>
+<nav class="nav" style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="List.dc.html" class="cur"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path></svg>データ一覧</a></nav>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="mi" style="color:#566075"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>山田 太郎</span><button class="btn" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"></path></svg>ログアウト</button></div>
+</div>
+</header>
+<main class="wrap" style="padding-top:20px;padding-bottom:48px;display:flex;flex-direction:column;gap:16px">
+<a href="List.dc.html" style="display:inline-flex;align-items:center;min-height:44px;width:fit-content;text-decoration:none;font-weight:500;gap:6px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>データ一覧に戻る</a>
+<div role="status" style="display:flex;align-items:center;gap:10px;background:#E3F4EC;color:#12603A;border-radius:8px;padding:10px 14px;font-weight:500"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12l3 3 5-6"></path></svg>アップロードしました。分析画面を開いています。</div>
+<section style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h1 style="margin:0;font-size:24px">月次売上_2025.csv</h1><span class="badge"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"></path></svg>公開</span><button class="btn" type="button" style="margin-left:4px" id="privBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>非公開にする</button></div>
+<p style="margin:0;color:#566075;display:flex;flex-wrap:wrap;gap:4px 18px"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>12,480 行</span><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M12 4v16M18 4v16"></path></svg>8 列</span><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M14 3v5h5"></path></svg>UTF-8</span><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>山田 太郎</span></p>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+<label class="f"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>ビュー</span><select class="sel" style="min-width:200px"><option>（保存したビューを選ぶ）</option><option>関東の売上推移</option></select></label>
+<button class="btn pri" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>ビューを保存</button>
+</div>
+</section>
+<section class="card" aria-label="フィルタと並べ替え" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px">
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="mi" style="color:#566075;font-weight:700;margin-right:4px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"></path></svg>絞り込み</span><span class="chip"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>期間 ≥ 2025-04-01<button type="button" aria-label="条件「期間」を削除"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span><span class="chip"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"></path></svg>売上 ≥ 10,000<button type="button" aria-label="条件「売上」を削除"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span><button class="chip add" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>条件を追加</button></div>
+<label class="f" style="flex-direction:row;align-items:center;gap:8px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"></path></svg>並べ替え<select class="sel"><option>売上（大きい順）</option><option>日付（新しい順）</option></select></label>
+</section>
+
+<details class="sec" open="">
+<summary><h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M3 15h18M9 4v16"></path></svg>データ表</h2><span class="sum-r"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"></path></svg>3,214 件 / 全 12,480 件</span><span class="tg" aria-label="開閉"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></span></summary>
+<div style="overflow-x:auto">
+<table class="t" style="min-width:720px"><thead><tr><th>日付</th><th>地域</th><th>店舗</th><th>商品</th><th class="n">数量</th><th class="n">単価</th><th class="n">売上</th></tr></thead><tbody>
+<tr><td>2025-06-12</td><td>関東</td><td>新宿</td><td>商品A</td><td class="n">120</td><td class="n">800</td><td class="n">96,000</td></tr>
+<tr><td>2025-05-30</td><td>関西</td><td>梅田</td><td>商品C</td><td class="n">88</td><td class="n">925</td><td class="n">81,400</td></tr>
+<tr><td>2025-06-03</td><td>関東</td><td>渋谷</td><td>商品B</td><td class="n">74</td><td class="n">950</td><td class="n">70,300</td></tr>
+<tr><td>2025-04-18</td><td>中部</td><td>名古屋</td><td>商品A</td><td class="n">80</td><td class="n">800</td><td class="n">64,000</td></tr>
+<tr><td>2025-05-07</td><td>九州</td><td>博多</td><td>商品D</td><td class="n">61</td><td class="n">966</td><td class="n">58,950</td></tr>
+</tbody></table>
+</div>
+<div style="padding:12px 20px;border-top:1px solid #DDE1E8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;color:#566075;font-size:12px"><span>1 / 643 ページ</span><span style="display:flex;gap:8px"><button class="btn" type="button" disabled=""><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>前へ</button><button class="btn" type="button">次へ<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></span></div>
+</details>
+
+<details class="sec" open="">
+<summary><h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 16v-5M12 16V7M17 16v-8"></path></svg>グラフ</h2><span class="sum-r"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"></path></svg>フィルタ後 3,214 件</span><span class="tg" aria-label="開閉"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></span></summary>
+<div class="sec-b" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+<div style="flex: 1 1 100%; min-width:0; display:flex; flex-direction:column; gap:16px; background: #fff; border: 1px solid #DDE1E8; border-radius: 10px; padding: 16px; box-sizing: border-box">
+<h3 style="margin:0;font-size:16px">グラフ：地域ごとの売上合計</h3><p style="margin:0;color:#566075;font-size:13px">下の3つを選ぶと、グラフが変わります。</p><div style="display:flex;flex-wrap:wrap;gap:12px">
+<label class="f">横軸（何ごとに分ける？）<select class="sel"><option>地域</option></select></label>
+<label class="f">縦軸（何を集める？）<select class="sel"><option>売上（合計）</option></select></label>
+<label class="f">グラフの種類<select class="sel"><option>棒</option><option>折れ線</option><option>円</option><option>散布図</option></select></label>
+</div>
+<svg viewBox="0 0 640 290" role="img" aria-label="棒グラフ：地域別の売上合計（千円）。関東 48,200、関西 35,760、中部 24,310、九州 15,480、東北 7,920、北海道 4,130。" style="width:100%;height:auto;display:block">
+<g stroke="#DDE1E8" stroke-width="1"><line x1="60" y1="20" x2="630" y2="20"></line><line x1="60" y1="75" x2="630" y2="75"></line><line x1="60" y1="130" x2="630" y2="130"></line><line x1="60" y1="185" x2="630" y2="185"></line></g>
+<line x1="60" y1="240" x2="630" y2="240" stroke="#566075" stroke-width="1.5"></line>
+<g font-size="12" fill="#566075" text-anchor="end"><text x="52" y="24">50,000</text><text x="52" y="79">37,500</text><text x="52" y="134">25,000</text><text x="52" y="189">12,500</text><text x="52" y="244">0</text></g>
+<g fill="#2A55D6"><rect x="82" y="28" width="56" height="212" rx="4"></rect><rect x="172" y="83" width="56" height="157" rx="4"></rect><rect x="262" y="133" width="56" height="107" rx="4"></rect><rect x="352" y="172" width="56" height="68" rx="4"></rect><rect x="442" y="205" width="56" height="35" rx="4"></rect><rect x="532" y="222" width="56" height="18" rx="4"></rect></g>
+<g font-size="12" fill="#1B2130" text-anchor="middle" font-weight="700"><text x="110" y="20">48,200</text><text x="200" y="75">35,760</text><text x="290" y="125">24,310</text><text x="380" y="164">15,480</text><text x="470" y="197">7,920</text><text x="560" y="214">4,130</text></g>
+<g font-size="13" fill="#1B2130" text-anchor="middle"><text x="110" y="262">関東</text><text x="200" y="262">関西</text><text x="290" y="262">中部</text><text x="380" y="262">九州</text><text x="470" y="262">東北</text><text x="560" y="262">北海道</text></g>
+<text x="345" y="284" font-size="12" fill="#566075" text-anchor="middle">単位：千円</text>
+</svg>
+</div>
+
+</div>
+</details>
+
+<details class="sec" open="">
+<summary><h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>集計</h2><span class="sum-r"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>フィルタ後 3,214 件</span><span class="tg" aria-label="開閉"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></span></summary>
+<div class="sec-b" style="display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;color:#566075;font-size:13px">何ごとに、何を集めるかを選ぶと、表が変わります。グラフも同じ集計を使います。</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<label class="f">グループ化（何ごとに分ける？）<select class="sel"><option>地域</option></select></label>
+<label class="f">指標（何を集める？）<select class="sel"><option>売上 合計</option><option>売上 平均</option><option>件数</option></select></label>
+</div>
+<div style="overflow-x:auto;border:1px solid #DDE1E8;border-radius:8px"><table class="t" style="min-width:420px"><thead><tr><th>地域</th><th class="n">件数</th><th class="n">売上 合計</th></tr></thead><tbody>
+<tr><td>関東</td><td class="n">1,120</td><td class="n">48,200</td></tr>
+<tr><td>関西</td><td class="n">842</td><td class="n">35,760</td></tr>
+<tr><td>中部</td><td class="n">610</td><td class="n">24,310</td></tr>
+<tr><td>九州</td><td class="n">402</td><td class="n">15,480</td></tr>
+<tr><td>東北</td><td class="n">160</td><td class="n">7,920</td></tr>
+<tr><td>北海道</td><td class="n">80</td><td class="n">4,130</td></tr>
+</tbody></table></div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;color:#566075;font-size:12px"><span>全 6 グループ（1ページ 100 行）</span><span style="display:flex;gap:8px"><button class="btn" type="button" disabled=""><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>前へ</button><button class="btn" type="button" disabled="">次へ<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></span></div>
+</div>
+</details>
+
+<details class="sec" open="">
+<summary><h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1"></rect><rect x="13" y="3" width="8" height="8" rx="1"></rect><rect x="3" y="13" width="8" height="8" rx="1"></rect><rect x="13" y="13" width="8" height="8" rx="1"></rect></svg>統計・相関</h2><span class="sum-r"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"></path></svg>フィルタ後 3,214 件</span><span class="tg" aria-label="開閉"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></span></summary>
+<div class="sec-b" style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:14px;display:inline-flex;align-items:center;gap:6px"><svg class="ic" viewBox="0 0 24 24" style="color:#2A55D6" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"></path></svg>基本統計（数値列）</h3>
+<div style="overflow-x:auto;border:1px solid #DDE1E8;border-radius:8px">
+<table class="t" style="min-width:640px"><thead><tr><th>列</th>
+<th class="n"><span class="hd">件数<button class="q" type="button" aria-label="「件数」とは" onClick="{{h_count}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></span></th>
+<th class="n"><span class="hd">平均<button class="q" type="button" aria-label="「平均」とは" onClick="{{h_mean}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></span></th>
+<th class="n"><span class="hd">中央値<button class="q" type="button" aria-label="「中央値」とは" onClick="{{h_median}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></span></th>
+<th class="n"><span class="hd">標準偏差<button class="q" type="button" aria-label="「標準偏差」とは" onClick="{{h_std}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></span></th>
+<th class="n"><span class="hd">最小<button class="q" type="button" aria-label="「最小」とは" onClick="{{h_min}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></span></th>
+<th class="n"><span class="hd">最大<button class="q" type="button" aria-label="「最大」とは" onClick="{{h_max}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></span></th></tr></thead><tbody>
+<tr><td>数量</td><td class="n">3,214</td><td class="n">64.8</td><td class="n">60</td><td class="n">28.4</td><td class="n">5</td><td class="n">190</td></tr>
+<tr><td>単価</td><td class="n">3,214</td><td class="n">884.2</td><td class="n">900</td><td class="n">96.7</td><td class="n">640</td><td class="n">1,200</td></tr>
+<tr><td>売上</td><td class="n">3,214</td><td class="n">57,300</td><td class="n">52,000</td><td class="n">24,810</td><td class="n">10,000</td><td class="n">152,000</td></tr>
+</tbody></table>
+</div>
+<sc-if value="{{helpStat}}" hint-placeholder-val="{{ true }}"><div class="hp" role="note"><svg class="ic" viewBox="0 0 24 24" style="margin-top:3px;color:#2A55D6" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg><div style="flex:1"><strong>{{helpTitle}}</strong><p>{{helpBody}}</p></div><button type="button" aria-label="解説を閉じる" onClick="{{closeHelp}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></sc-if>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:14px;display:inline-flex;align-items:center;gap:6px"><svg class="ic" viewBox="0 0 24 24" style="color:#2A55D6" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1"></rect><rect x="13" y="3" width="8" height="8" rx="1"></rect><rect x="3" y="13" width="8" height="8" rx="1"></rect><rect x="13" y="13" width="8" height="8" rx="1"></rect></svg>相関行列<button class="q" type="button" aria-label="「相関」とは" style="margin:-12px 0 -12px -2px" onClick="{{h_corr}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg></button></h3>
+<sc-if value="{{helpCorr}}" hint-placeholder-val="{{ false }}"><div class="hp" role="note"><svg class="ic" viewBox="0 0 24 24" style="margin-top:3px;color:#2A55D6" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17h.01"></path></svg><div style="flex:1"><strong>{{helpTitle}}</strong><p>{{helpBody}}</p></div><button type="button" aria-label="解説を閉じる" onClick="{{closeHelp}}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></sc-if>
+
+<div style="overflow-x:auto; display: flex; justify-content: center; align-items: center; gap: 24px">
+<table class="cm" aria-label="数量・単価・売上の相関行列" style="margin-left: 0; margin-right: 0"><thead><tr><th></th><th scope="col">数量</th><th scope="col">単価</th><th scope="col">売上</th></tr></thead><tbody>
+<tr><th scope="row">数量</th><td style="background:#1E3FA6;color:#fff">1.00</td><td style="background:#EEF2FD;color:#1B2130">−0.12</td><td style="background:#2A55D6;color:#fff">0.86</td></tr>
+<tr><th scope="row">単価</th><td style="background:#EEF2FD;color:#1B2130">−0.12</td><td style="background:#1E3FA6;color:#fff">1.00</td><td style="background:#C9D3F2;color:#1B2130">0.31</td></tr>
+<tr><th scope="row">売上</th><td style="background:#2A55D6;color:#fff">0.86</td><td style="background:#C9D3F2;color:#1B2130">0.31</td><td style="background:#1E3FA6;color:#fff">1.00</td></tr>
+</tbody></table>
+<div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#566075; flex-direction: column-reverse"><span>弱い</span><span aria-hidden="true" style="width: 10px; height: 120px; border-radius:5px; background: linear-gradient(0deg,#EEF2FD,#C9D3F2,#2A55D6,#1E3FA6)"></span><span>強い</span></div></div>
+<p style="margin:0; color:#566075; font-size:12px; display:flex; gap:6px; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg><span>例：「数量」と「売上」は強い相関（0.86）。因果関係を示すものではありません。</span></p>
+</div>
+</div>
+</details>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2100}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { help: 'std' }; }
+renderVals() {
+const T = {
+count: ['件数', '空欄を除いた、データの数です。'],
+mean: ['平均', 'すべての値を足して、件数で割った値です。全体の「ふつう」の目安になります。'],
+median: ['中央値', '小さい順に並べたとき、ちょうど真ん中にくる値です。極端に大きい（小さい）値の影響を受けにくいのが特徴です。'],
+std: ['標準偏差', '値が平均からどれくらいばらついているかを表します。大きいほどばらつきが大きく、小さいほど平均の近くに集まっています。'],
+min: ['最小', '一番小さい値です。'],
+max: ['最大', '一番大きい値です。'],
+corr: ['相関', '2つの列が、一緒に増えたり減ったりする強さです。1に近いほど同じ向きに動き、−1に近いほど逆向き、0に近いほど関係が薄いことを示します。']
+};
+const h = (this.state || {}).help || null;
+const tog = (k) => () => this.setState({ help: ((this.state || {}).help === k) ? null : k });
+return {
+h_count: tog('count'), h_mean: tog('mean'), h_median: tog('median'), h_std: tog('std'), h_min: tog('min'), h_max: tog('max'), h_corr: tog('corr'),
+helpStat: !!h && h !== 'corr', helpCorr: h === 'corr',
+helpTitle: h ? T[h][0] : '', helpBody: h ? T[h][1] : '',
+closeHelp: () => this.setState({ help: null })
+};
+}
+}
+</script>
+</body>
+</html>

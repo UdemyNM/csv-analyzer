@@ -1,0 +1,86 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "List.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "is_interactive": true,
+      "title": "データ一覧＋アップロード（CSVをドロップ）",
+      "w": 1280,
+      "x": 1360,
+      "y": 0
+    },
+    "ListDrag.dc.html": {
+      "expand": "fill",
+      "h": 760,
+      "title": "ドラッグ中の見え方",
+      "w": 1280,
+      "x": 1360,
+      "y": 1120
+    },
+    "Login.dc.html": {
+      "expand": "fill",
+      "h": 680,
+      "title": "ログイン /login",
+      "w": 1280,
+      "x": 2720,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 2221,
+      "is_interactive": true,
+      "title": "データ詳細（PC）：データ表 → グラフ・集計 → 統計",
+      "w": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "MobileDetail.dc.html": {
+      "expand": "fill",
+      "h": 2700,
+      "is_interactive": true,
+      "title": "データ詳細（375px）",
+      "w": 375,
+      "x": 2720,
+      "y": 800
+    },
+    "MobileList.dc.html": {
+      "expand": "fill",
+      "h": 1250,
+      "is_interactive": true,
+      "title": "データ一覧＋アップロード（375px）",
+      "w": 375,
+      "x": 3175,
+      "y": 800
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-15T09:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "t1": {
+      "kind": "title1",
+      "maxW": 3550,
+      "text": "案B 全画面：一覧＋アップロード（ドロップ）→ 詳細（縦1列・開閉式）／ログイン／スマホ幅",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "List.dc.html",
+    "ListDrag.dc.html",
+    "Login.dc.html",
+    "MobileDetail.dc.html",
+    "MobileList.dc.html"
+  ],
+  "pages": [],
+  "title": "案B 全画面デザイン"
+}

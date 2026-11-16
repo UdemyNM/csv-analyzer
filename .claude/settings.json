@@ -35,14 +35,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/format.js"
+            "command": "node .claude/hooks/format-prettier.mjs"
           }
         ]
       }
     ]
-  },
-  "enabledPlugins": {
-    "security-guidance@claude-plugins-official": true,
-    "engineering@knowledge-work-plugins": true
   }
 }

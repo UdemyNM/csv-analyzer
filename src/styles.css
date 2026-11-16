@@ -1,0 +1,349 @@
+/* 共通CSS（docs/05 7・8 章：配色・フォント・角丸・タッチ領域44px・コントラスト4.5:1） */
+:root {
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-border: #dde1e8;
+  --color-text: #1b2130;
+  --color-text-muted: #566075;
+  --color-accent: #2a55d6;
+  --color-accent-text: #ffffff;
+  --color-badge-bg: #e3f4ec;
+  --color-badge-text: #12603a;
+  --color-danger: #b42318;
+  --color-danger-bg: #fef3f2;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --touch-size: 44px;
+  --page-width: 1120px;
+  --page-gutter: 24px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family:
+    "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic",
+    Meiryo, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.3;
+  margin: 0 0 12px;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+/* display を指定した部品でも hidden 属性で隠れるようにする */
+[hidden] {
+  display: none !important;
+}
+
+/* 画面には出さず、読み上げにだけ出す */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- レイアウト ---- */
+.page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 24px var(--page-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page--narrow {
+  max-width: 440px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.section-title {
+  font-size: 1.125rem;
+}
+
+/* ---- ヘッダー ---- */
+.app-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-header__inner {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 8px var(--page-gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.app-header__logo {
+  font-weight: 700;
+}
+
+.app-header__nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+}
+
+.app-header__right {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.user-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+/* ---- ボタン・入力（タッチ領域 44px 以上） ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+
+.btn-large {
+  min-height: 52px;
+  padding: 0 28px;
+  font-size: 1.0625rem;
+}
+
+.input,
+select.input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-weight: 700;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form .btn {
+  align-self: stretch;
+}
+
+.login-form__title {
+  font-size: 1.375rem;
+}
+
+/* ---- メッセージ ---- */
+.alert {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-danger);
+  border-radius: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.alert p {
+  margin: 0 0 8px;
+}
+
+.upload-notice {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--color-badge-bg);
+  color: var(--color-badge-text);
+  font-weight: 700;
+}
+
+/* ---- ドロップ枠 ---- */
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 20px;
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.drop-zone--active {
+  border-color: var(--color-accent);
+  border-style: solid;
+  background: #eef2fd;
+}
+
+/* ドラッグ中は枠の中の部品が dragleave を起こさないようにする */
+.drop-zone--active * {
+  pointer-events: none;
+}
+
+.drop-zone__hint {
+  margin: 0;
+  font-weight: 700;
+}
+
+.drop-zone__note {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.drop-zone .alert {
+  align-self: stretch;
+  margin: 0;
+}
+
+/* ---- データ一覧 ---- */
+.dataset-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dataset-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 44px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.dataset-list__item:first-child {
+  border-top: 0;
+}
+
+.dataset-list__name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.dataset-list__owner {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.badge--shared {
+  background: var(--color-badge-bg);
+  color: var(--color-badge-text);
+}
+
+.badge--private {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --page-gutter: 16px;
+  }
+
+  .dataset-list__owner {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  /* スマホ幅ではドラッグしないので、「ファイルを選ぶ」を横いっぱいに大きく出す */
+  .drop-zone .btn-large {
+    align-self: stretch;
+  }
+}

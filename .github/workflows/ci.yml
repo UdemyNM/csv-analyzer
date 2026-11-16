@@ -1,5 +1,7 @@
-name: PR Test and Merge
+name: PR Test
 
+# mainへのPRでテストとビルドを実行する。
+# マージは人が行う。マージ後は deploy.yml が main への push で動き、公開される。
 on:
   pull_request:
     branches: [main]
@@ -23,25 +25,3 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-
-  # テストが通ったら自動でマージし、本番（GitHub Pages）へ公開する。
-  # 公開リポジトリなので、フォークからのPRや他人のPRは自動マージしない。
-  merge-and-deploy:
-    needs: test
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor == github.repository_owner
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      PR_URL: ${{ github.event.pull_request.html_url }}
-    steps:
-      - name: PRをスカッシュマージ
-        run: gh pr merge "$PR_URL" --squash --delete-branch
-      # GITHUB_TOKEN によるマージでは push トリガーが動かないため、公開を明示的に起動する
-      - name: 本番へ公開
-        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main

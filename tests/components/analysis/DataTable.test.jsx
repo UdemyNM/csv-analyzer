@@ -196,3 +196,29 @@ describe("DataTable: 見出しの差し込みと行の非表示（設計書 6.2�
     expect(headers[0]).toHaveAttribute("aria-sort", "descending");
   });
 });
+
+describe("DataTable: resetKey（最終レビュー I2: 行を隠してもページを保つ）", () => {
+  it("resetKey が同じなら、rows が変わってもページを保つ。resetKey が変われば 1 ページ目", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DataTable columns={COLUMNS} rows={makeRows(250)} resetKey="a" />,
+    );
+    await user.click(screen.getByRole("button", { name: "次へ" }));
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    rerender(<DataTable columns={COLUMNS} rows={makeRows(249)} resetKey="a" />);
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    rerender(<DataTable columns={COLUMNS} rows={makeRows(249)} resetKey="b" />);
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+  });
+
+  it("保っていたページが範囲外になったら、最後のページに寄せる", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DataTable columns={COLUMNS} rows={makeRows(250)} resetKey="a" />,
+    );
+    await user.click(screen.getByRole("button", { name: "次へ" }));
+    await user.click(screen.getByRole("button", { name: "次へ" }));
+    rerender(<DataTable columns={COLUMNS} rows={makeRows(150)} resetKey="a" />);
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+  });
+});

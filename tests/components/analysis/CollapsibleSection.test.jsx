@@ -120,3 +120,20 @@ describe("CollapsibleSection: defaultOpen（設計書 5.1: 統計・相関は初
     expect(screen.getByText("統計の中身")).toBeVisible();
   });
 });
+
+describe("CollapsibleSection: lazy（最終レビュー I3: 閉じているあいだは中身を作らない）", () => {
+  it("lazy なら閉じているあいだは中身を描かず、開くと描き、閉じると外す。region は常にある", async () => {
+    const user = userEvent.setup();
+    render(
+      <CollapsibleSection title="統計・相関" defaultOpen={false} lazy>
+        <p>重い中身</p>
+      </CollapsibleSection>,
+    );
+    expect(regionOf("統計・相関")).toBeInTheDocument();
+    expect(screen.queryByText("重い中身")).toBeNull();
+    await user.click(screen.getByRole("button"));
+    expect(screen.getByText("重い中身")).toBeVisible();
+    await user.click(screen.getByRole("button"));
+    expect(screen.queryByText("重い中身")).toBeNull();
+  });
+});

@@ -158,6 +158,11 @@ async function addMetric(user, { column, fn }) {
 
 const aggregateResult = () => screen.getByRole("region", { name: "集計結果" });
 
+/** 統計・相関を開く（初期は閉じていて、閉じているあいだは中身を作らない） */
+async function openStats(user) {
+  await user.click(screen.getByRole("button", { name: "統計・相関を開く" }));
+}
+
 /** 基本統計の、列ごとの行（[件数, 平均, 中央値, 標準偏差, 最小, 最大] の文字） */
 function statsRow(column) {
   const stats = screen.getByRole("heading", {
@@ -243,7 +248,8 @@ describe("sales_2024q1.csv をアップロードして分析画面で見る", ()
   });
 
   it("統計・相関: 売上の件数と平均、数量・単価・売上の相関行列が参照計算と一致", async () => {
-    await openSample("sales_2024q1.csv");
+    const user = await openSample("sales_2024q1.csv");
+    await openStats(user);
     expect(statsRow("売上").slice(0, 2)).toEqual([
       "1,092",
       fmt(3272140 / 1092),
@@ -345,7 +351,8 @@ describe("sales_excel_sjis.csv をアップロードして分析画面で見る"
   });
 
   it("統計: カンマ付きの列（1月）も数値列として、件数 13・最小 70,200・最大 1,094,440", async () => {
-    await openSample("sales_excel_sjis.csv");
+    const user = await openSample("sales_excel_sjis.csv");
+    await openStats(user);
     const [count, , , , min, max] = statsRow("1月");
     expect(count).toBe("13");
     expect(min).toBe("70,200");
@@ -427,7 +434,8 @@ describe("survey.csv をアップロードして分析画面で見る", () => {
   });
 
   it("統計: 満足度は 200 件・平均 3.93・中央値 4・標準偏差・最小 1・最大 5。回答ID は平均 100.5", async () => {
-    await openSample("survey.csv");
+    const user = await openSample("survey.csv");
+    await openStats(user);
     const values = [
       ...surveyText().matchAll(/^\d+,2024-[^,]+,[^,]+,[^,]*,(\d),/gm),
     ].map((m) => Number(m[1]));
@@ -453,7 +461,8 @@ describe("survey.csv をアップロードして分析画面で見る", () => {
   });
 
   it("相関: 回答ID と 満足度の 2×2（対角 1.00・対称）", async () => {
-    await openSample("survey.csv");
+    const user = await openSample("survey.csv");
+    await openStats(user);
     const { names, rows } = correlationMatrix();
     expect(names).toEqual(["回答ID", "満足度"]);
     expect(rows[0][0]).toBe("1.00");

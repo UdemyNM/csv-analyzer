@@ -84,6 +84,8 @@ export function AnalysisTable({
           : {}
       }
       rowIndexOf={rowIndexOf}
+      // 行を隠しても同じページのまま。絞り込み・並べ替えが変わったら 1 ページ目に戻す
+      resetKey={JSON.stringify({ filters, sort })}
       onHideRow={(index) =>
         onSettingsChange({ hiddenRows: [...hiddenRows, index] })
       }

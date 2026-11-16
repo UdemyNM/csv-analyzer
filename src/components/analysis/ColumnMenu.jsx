@@ -180,7 +180,11 @@ function MenuPanel({
   const targets = query ? matching.map((c) => c.value) : allValues;
   const allChecked =
     targets.length > 0 && targets.every((v) => selected.has(v));
-  const anySelected = allValues.some((v) => selected.has(v));
+  // 検索中に適用したら、検索に合っていてチェックの付いた値だけを選んだものとする（Excel と同じ）
+  const applied = query
+    ? new Set(targets.filter((v) => selected.has(v)))
+    : selected;
+  const anySelected = allValues.some((v) => applied.has(v));
   const sortedHere = sort?.column === column.name;
 
   const toggle = (v) =>
@@ -319,7 +323,7 @@ function MenuPanel({
               disabled={!anySelected}
               onClick={() =>
                 onApplyValues(
-                  selectionToFilter(column.name, selected, allValues),
+                  selectionToFilter(column.name, applied, allValues),
                 )
               }
             >

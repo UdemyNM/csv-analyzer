@@ -8,8 +8,14 @@ import { useId, useState } from "react";
  * キーボードでは右端の開閉ボタンだけに止まる（summary は tabIndex=-1。Tab の止まる所が
  * 1 セクションに 2 つでき、同じ開閉を 2 回読み上げるのを防ぐ）。
  * 開閉の状態は state で持ち、summary の標準の切替は止める（aria-expanded と常に一致させるため）。
+ * lazy: 閉じているあいだは中身を描かない（重い計算をする中身のため。region 自体は常に残す）。
  */
-export function CollapsibleSection({ title, defaultOpen = true, children }) {
+export function CollapsibleSection({
+  title,
+  defaultOpen = true,
+  lazy = false,
+  children,
+}) {
   const [open, setOpen] = useState(defaultOpen);
   const baseId = useId();
   const headingId = `${baseId}-heading`;
@@ -44,7 +50,7 @@ export function CollapsibleSection({ title, defaultOpen = true, children }) {
         aria-labelledby={headingId}
         className="section__body"
       >
-        {children}
+        {lazy && !open ? null : children}
       </div>
     </details>
   );

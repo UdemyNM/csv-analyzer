@@ -158,6 +158,12 @@ describe("ColumnMenu: 値から選ぶ", () => {
     const boxes = within(dialog()).getAllByRole("checkbox");
     expect(boxes).toHaveLength(2); // すべて選択 + 大阪
     await user.click(checkbox("すべて選択")); // 大阪だけ外れる
+    // 検索を消すと、ほかの値はチェックが付いたまま（「すべて選択」は検索に合う値だけを切り替えた）
+    await user.clear(
+      within(dialog()).getByRole("searchbox", { name: "値を検索" }),
+    );
+    expect(checkbox("東京")).toBeChecked();
+    expect(checkbox("大阪")).not.toBeChecked();
     await user.click(within(dialog()).getByRole("button", { name: "適用" }));
     expect(onApplyValues).toHaveBeenCalledWith({
       column: "店舗",
@@ -313,5 +319,35 @@ describe("ColumnMenu: 画面からはみ出さない位置（ブラウザでの�
     const style = dialog().style;
     expect(style.top).toBe("144px");
     expect(style.maxHeight).toBe(`${768 - 144 - 8}px`);
+  });
+});
+
+describe("ColumnMenu: 検索中に「適用」（最終レビュー I1）", () => {
+  it("検索中に適用すると、検索に合っていてチェックの付いた値だけを選んだものとする（Excel と同じ）", async () => {
+    const { user, onApplyValues } = setup();
+    await open(user);
+    await user.type(
+      within(dialog()).getByRole("searchbox", { name: "値を検索" }),
+      "阪",
+    );
+    await user.click(within(dialog()).getByRole("button", { name: "適用" }));
+    expect(onApplyValues).toHaveBeenCalledWith({
+      column: "店舗",
+      op: "in",
+      values: ["大阪"],
+    });
+  });
+
+  it("検索中に合う値のチェックを全部外すと「適用」は押せない", async () => {
+    const { user } = setup();
+    await open(user);
+    await user.type(
+      within(dialog()).getByRole("searchbox", { name: "値を検索" }),
+      "阪",
+    );
+    await user.click(checkbox("大阪"));
+    expect(
+      within(dialog()).getByRole("button", { name: "適用" }),
+    ).toBeDisabled();
   });
 });

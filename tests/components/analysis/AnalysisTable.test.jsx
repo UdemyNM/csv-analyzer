@@ -147,3 +147,48 @@ describe("AnalysisTable", () => {
     expect(onSettingsChange).toHaveBeenCalledWith({ hiddenRows: [7, 1] });
   });
 });
+
+describe("AnalysisTable: 行を隠してもページを保つ（最終レビュー I2）", () => {
+  it("2 ページ目で行を隠しても 2 ページ目のまま。条件が変われば 1 ページ目", async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: 150 }, (_, i) => ({
+      店舗: `店${i}`,
+      商品: "x",
+      売上: String(i),
+    }));
+    const index = buildRowIndex(many);
+    const props = {
+      columns: COLUMNS,
+      baseRows: many,
+      rowIndexOf: (row) => index.get(row),
+      onSettingsChange: vi.fn(),
+      onAddCondition: vi.fn(() => true),
+    };
+    const { rerender } = render(
+      <AnalysisTable {...props} rows={many} settings={{ ...EMPTY_CONFIG }} />,
+    );
+    await user.click(screen.getByRole("button", { name: "次へ" }));
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    const hidden = many.filter((_, i) => i !== 120);
+    rerender(
+      <AnalysisTable
+        {...props}
+        rows={hidden}
+        settings={{ ...EMPTY_CONFIG, hiddenRows: [120] }}
+      />,
+    );
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    rerender(
+      <AnalysisTable
+        {...props}
+        rows={hidden}
+        settings={{
+          ...EMPTY_CONFIG,
+          hiddenRows: [120],
+          sort: { column: "売上", direction: "desc" },
+        }}
+      />,
+    );
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+  });
+});

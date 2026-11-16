@@ -463,7 +463,8 @@ export function DatasetDetailPage({
         </div>
       </FieldDndProvider>
 
-      <CollapsibleSection title="統計・相関" defaultOpen={false}>
+      {/* 閉じているあいだは統計・相関を計算しない（25 万行で約 0.4 秒かかるため） */}
+      <CollapsibleSection title="統計・相関" defaultOpen={false} lazy>
         {/* 統計・相関は行の並びに依存しないので、並べ替え前（フィルタ後）の行を渡す（並べ替えで 25 万行を計算し直さない） */}
         <StatsPanel
           columns={columns}

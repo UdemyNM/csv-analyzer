@@ -88,9 +88,24 @@ const firstDataRow = () => {
     .find((r) => within(r).queryAllByRole("columnheader").length === 0);
 };
 
+const openStats = (user) =>
+  user.click(screen.getByRole("button", { name: "統計・相関を開く" }));
+
 describe("DatasetDetailPage: 無駄な再計算をしない", () => {
+  it("統計・相関を閉じているあいだは計算しない。開くと計算する（最終レビュー I3）", async () => {
+    const user = await open();
+    expect(statistics).not.toHaveBeenCalled();
+    expect(correlation).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "1 行目を非表示" }));
+    expect(statistics).not.toHaveBeenCalled();
+    await openStats(user);
+    expect(statistics).toHaveBeenCalled();
+    expect(correlation).toHaveBeenCalled();
+  });
+
   it("並べ替えだけを変えても、基本統計・相関は計算し直さない（表の並びは変わる）", async () => {
     const user = await open();
+    await openStats(user);
     const statsCalls = statistics.mock.calls.length;
     const correlationCalls = correlation.mock.calls.length;
     expect(statsCalls).toBeGreaterThan(0);
@@ -106,6 +121,7 @@ describe("DatasetDetailPage: 無駄な再計算をしない", () => {
 
   it("フィルタを変えたら、基本統計・相関は計算し直す（行の集合が変わるため）", async () => {
     const user = await open();
+    await openStats(user);
     const statsCalls = statistics.mock.calls.length;
 
     await addFilter(user, "店舗", "eq", "東京");

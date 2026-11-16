@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { Accessibility } from "@dnd-kit/dom";
 import { DragDropProvider, useDraggable, useDroppable } from "@dnd-kit/react";
 
 /**
@@ -25,9 +26,45 @@ export function handleDragEnd(event, onMove) {
   onMove({ field, from: source.data.from ?? null, to });
 }
 
+const fieldOf = (event) => event.operation.source?.data?.field ?? "";
+const slotLabelOf = (target) => target?.data?.label;
+
+/** スクリーンリーダーへの知らせ（日本語・列名と枠の名前で。内部の id は読まない） */
+export const ANNOUNCEMENTS = {
+  dragstart: (event) => `列「${fieldOf(event)}」を持ち上げました。`,
+  dragover: (event) => {
+    const label = slotLabelOf(event.operation.target);
+    return label ? `「${label}」の枠の上です。` : undefined;
+  },
+  dragend: (event) => {
+    const field = fieldOf(event);
+    if (event.canceled) return `列「${field}」の移動をやめました。`;
+    const label = slotLabelOf(event.operation.target);
+    return label
+      ? `列「${field}」を「${label}」の枠に置きました。`
+      : `列「${field}」を枠の外に置きました。`;
+  },
+};
+
+export const SCREEN_READER_INSTRUCTIONS = {
+  draggable:
+    "スペースキーで列を持ち上げ、矢印キーで枠へ動かし、もう一度スペースキーで置きます。Esc キーでやめます。ドラッグしなくても、各枠の「＋」ボタンから列を追加できます。",
+};
+
+const plugins = (defaults) => [
+  ...defaults.filter((plugin) => plugin !== Accessibility),
+  Accessibility.configure({
+    announcements: ANNOUNCEMENTS,
+    screenReaderInstructions: SCREEN_READER_INSTRUCTIONS,
+  }),
+];
+
 export function FieldDndProvider({ onMove, children }) {
   return (
-    <DragDropProvider onDragEnd={(event) => handleDragEnd(event, onMove)}>
+    <DragDropProvider
+      plugins={plugins}
+      onDragEnd={(event) => handleDragEnd(event, onMove)}
+    >
       {children}
     </DragDropProvider>
   );
@@ -70,18 +107,25 @@ function SlotChip({ slot, surface, index, item, label, onRemove, extra }) {
   });
   const droppable = useDroppable({
     id: `${surface}-${slot}-chipdrop-${uid}`,
-    data: { slot, index },
+    data: { slot, index, label },
   });
+  // li はリストの項目のまま（中の × や集計方法の select を読み上げで操作できるように）。
+  // ドラッグの役割（role・操作の説明）は、取っ手にした列名の部分に付く
   return (
     <li
       ref={mergeRefs(draggable.ref, droppable.ref)}
       className="chip slot-chip"
-      tabIndex={0}
-      aria-roledescription="ドラッグできる列"
       data-dragging={draggable.isDragging ? "true" : undefined}
       data-drop-target={droppable.isDropTarget ? "true" : undefined}
     >
-      <span>{item.label}</span>
+      <span
+        ref={draggable.handleRef}
+        className="slot-chip__handle"
+        tabIndex={0}
+        aria-roledescription="ドラッグできる列"
+      >
+        {item.label}
+      </span>
       {extra}
       <button
         type="button"
@@ -114,7 +158,7 @@ export function FieldSlot({
   const labelId = useId();
   const { ref, isDropTarget } = useDroppable({
     id: `${surface}-${slot}`,
-    data: { slot },
+    data: { slot, label },
   });
 
   return (

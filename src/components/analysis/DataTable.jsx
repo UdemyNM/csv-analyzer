@@ -11,6 +11,7 @@ const numClass = (column) => (column.type === "number" ? "num" : undefined);
  * 表は、名前つきの横スクロールの箱（region・tabIndex=0）に入れる。
  * rows が差し替わったら 1 ページ目に戻る。
  * renderHeader / headerAttrs: 見出しの中身と属性（aria-sort など）を差し替える。
+ * resetKey: 渡すと、rows が変わってもページを保ち、resetKey が変わったときだけ 1 ページ目に戻す。
  * onHideRow: あれば各行の左端に「この行を非表示」ボタンを置き、元の行番号（rowIndexOf）を渡す（設計書 6.2）。
  *
  * @param {{columns: {name: string, type?: string}[], rows: object[], label?: string,
@@ -24,8 +25,13 @@ export function DataTable({
   headerAttrs = () => ({}),
   rowIndexOf,
   onHideRow,
+  resetKey,
 }) {
-  const { page, pageCount, start, visible, goTo } = usePaging(rows);
+  const { page, pageCount, start, visible, goTo } = usePaging(
+    rows,
+    undefined,
+    resetKey,
+  );
 
   return (
     <div className="data-table">

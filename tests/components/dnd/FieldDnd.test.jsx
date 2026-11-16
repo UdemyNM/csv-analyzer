@@ -6,13 +6,15 @@
 //   handleDragEnd(event, onMove): event.operation.source.data = { field, from }、target.data = { slot, index? }
 //   列名は id に入れず data でだけ運ぶ（記号を含む列名でも壊れない）
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   DraggableField,
   FieldDndProvider,
   FieldSlot,
   handleDragEnd,
+  ANNOUNCEMENTS,
+  SCREEN_READER_INSTRUCTIONS,
 } from "../../../src/components/dnd/FieldDnd.jsx";
 
 const OPTIONS = [
@@ -178,4 +180,67 @@ describe("handleDragEnd", () => {
     handleDragEnd(drag({}, { slot: "rows" }), onMove);
     expect(onMove).not.toHaveBeenCalled();
   });
+});
+
+describe("FieldSlot: スクリーンリーダー（最終レビュー I4）", () => {
+  it("チップの li は listitem のまま（role=button を付けない）。ドラッグの取っ手は別の要素", () => {
+    renderSlot();
+    const group = screen.getByRole("group", { name: "行" });
+    const items = within(group).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    for (const li of items) expect(li).not.toHaveAttribute("role");
+    const handle = within(items[1]).getByText("売上:税込");
+    expect(handle).toHaveAttribute("aria-roledescription", "ドラッグできる列");
+    // × ボタンは li の中の独立したボタンとして残る
+    expect(
+      within(items[1]).getByRole("button", {
+        name: "行から「売上:税込」を外す",
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("読み上げ（最終レビュー I4: 日本語・列名で知らせる）", () => {
+  const source = { id: "x", data: { field: "売上:税込", from: null } };
+  const target = { id: "y", data: { slot: "values", label: "値" } };
+
+  it("持ち上げ・枠の上・置いた・やめたを日本語で知らせる（内部の id は読まない）", () => {
+    expect(ANNOUNCEMENTS.dragstart({ operation: { source } })).toBe(
+      "列「売上:税込」を持ち上げました。",
+    );
+    expect(ANNOUNCEMENTS.dragover({ operation: { source, target } })).toBe(
+      "「値」の枠の上です。",
+    );
+    expect(
+      ANNOUNCEMENTS.dragend({ operation: { source, target }, canceled: false }),
+    ).toBe("列「売上:税込」を「値」の枠に置きました。");
+    expect(
+      ANNOUNCEMENTS.dragend({
+        operation: { source, target: null },
+        canceled: false,
+      }),
+    ).toBe("列「売上:税込」を枠の外に置きました。");
+    expect(
+      ANNOUNCEMENTS.dragend({ operation: { source, target }, canceled: true }),
+    ).toBe("列「売上:税込」の移動をやめました。");
+  });
+
+  it("操作の説明も日本語", () => {
+    expect(SCREEN_READER_INSTRUCTIONS.draggable).toContain("スペースキー");
+  });
+});
+
+it("Provider は日本語の操作説明を、スクリーンリーダー用の説明として DOM に置く（少し遅れて置かれる）", async () => {
+  render(
+    <FieldDndProvider onMove={() => {}}>
+      <DraggableField field="店舗" from={null} surface="list">
+        店舗
+      </DraggableField>
+    </FieldDndProvider>,
+  );
+  await waitFor(() =>
+    expect(document.body.textContent).toContain(
+      SCREEN_READER_INSTRUCTIONS.draggable,
+    ),
+  );
 });

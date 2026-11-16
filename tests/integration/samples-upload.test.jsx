@@ -77,78 +77,108 @@ async function openSample(name) {
 const section = (name) => screen.getByRole("region", { name });
 const texts = (nodes) => nodes.map((n) => n.textContent);
 const dataTable = () => screen.getByRole("region", { name: "データ表の内容" });
-const headerTexts = (scope) =>
-  texts(within(scope).getAllByRole("columnheader"));
-/** 表の本体の行（ヘッダー行を除く）を、セルの文字の配列にする */
+const HIDDEN = { hidden: true }; // 統計・相関は初期で閉じている（中身は DOM にある）
+/** 見出しの文字（データ表は列名だけ。▼ メニューと「行の操作」の列は除く） */
+const headerTexts = (scope, options = {}) =>
+  within(scope)
+    .getAllByRole("columnheader", options)
+    .filter((th) => !th.classList.contains("data-table__row-action"))
+    .map((th) => (th.querySelector(".th-menu__label") ?? th).textContent);
+/** 表の本体の行（ヘッダー行を除く）を、セルの文字の配列にする（行を非表示にするボタンの列は除く） */
 const bodyRows = (scope) =>
   within(scope)
     .getAllByRole("row")
     .filter((r) => within(r).queryAllByRole("columnheader").length === 0)
-    .map((r) => texts(within(r).getAllByRole("cell")));
+    .map((r) =>
+      texts(
+        within(r)
+          .getAllByRole("cell")
+          .filter((c) => !c.classList.contains("data-table__row-action")),
+      ),
+    );
 
-async function addFilter(user, column, op, value) {
-  await user.click(screen.getByRole("button", { name: /条件を追加/ }));
-  await user.selectOptions(
-    screen.getByRole("combobox", { name: "列" }),
-    column,
+/** データ表の列見出しのメニューを開く */
+async function openColumnMenu(user, column) {
+  await user.click(
+    within(section("データ表")).getByRole("button", {
+      name: new RegExp(`^「${column}」の列のメニュー`),
+    }),
   );
+  return screen.getByRole("dialog", { name: `「${column}」の列の操作` });
+}
+
+/** 列見出しのメニューの「自由入力」で条件を足す */
+async function addFilter(user, column, op, value) {
+  const menu = await openColumnMenu(user, column);
+  await user.click(within(menu).getByRole("radio", { name: "自由入力" }));
   await user.selectOptions(
-    screen.getByRole("combobox", { name: "演算子" }),
+    within(menu).getByRole("combobox", { name: "演算子" }),
     op,
   );
   if (value !== "") {
-    await user.type(screen.getByRole("textbox", { name: "値" }), value);
+    await user.type(within(menu).getByRole("textbox", { name: "値" }), value);
   }
-  await user.click(screen.getByRole("button", { name: "追加" }));
+  await user.click(within(menu).getByRole("button", { name: "追加" }));
+}
+
+/** 集計の枠の「＋」で列を足す */
+async function addToSlot(user, slotLabel, column) {
+  const box = section("集計");
+  await user.click(
+    within(box).getByRole("button", { name: `${slotLabel}に列を追加` }),
+  );
+  await user.click(
+    within(
+      within(box).getByRole("list", { name: `${slotLabel}に追加する列` }),
+    ).getByRole("button", { name: column }),
+  );
 }
 
 async function groupBy(user, names) {
-  const box = section("集計");
-  for (const name of names) {
-    await user.click(
-      within(within(box).getByRole("group", { name: "グループ化" })).getByRole(
-        "checkbox",
-        { name },
-      ),
-    );
-  }
+  for (const name of names) await addToSlot(user, "行", name);
 }
 
+const FN_LABELS = {
+  sum: "合計",
+  avg: "平均",
+  count: "件数",
+  min: "最小",
+  max: "最大",
+};
+
+/** 値の枠に列を置き、集計方法を fn にする（数値の列は合計、それ以外は件数で入る） */
 async function addMetric(user, { column, fn }) {
-  const box = section("集計");
-  if (column !== undefined) {
-    await user.selectOptions(
-      within(box).getByRole("combobox", { name: "指標の列" }),
-      column,
-    );
-  }
-  await user.selectOptions(
-    within(box).getByRole("combobox", { name: "集計関数" }),
-    fn,
-  );
-  await user.click(within(box).getByRole("button", { name: "指標を追加" }));
+  await addToSlot(user, "値", column);
+  const select = within(section("集計"))
+    .getAllByRole("combobox")
+    .filter((c) => c.getAttribute("aria-label")?.startsWith(`「${column}・`))
+    .at(-1);
+  if (select.value !== fn) await user.selectOptions(select, fn);
 }
 
 const aggregateResult = () => screen.getByRole("region", { name: "集計結果" });
 
 /** 基本統計の、列ごとの行（[件数, 平均, 中央値, 標準偏差, 最小, 最大] の文字） */
 function statsRow(column) {
-  const stats = screen.getByRole("heading", { name: "基本統計" }).parentElement;
+  const stats = screen.getByRole("heading", {
+    name: "基本統計",
+    ...HIDDEN,
+  }).parentElement;
   const row = within(stats)
-    .getByRole("rowheader", { name: column })
+    .getByRole("rowheader", { name: column, ...HIDDEN })
     .closest("tr");
-  return texts(within(row).getAllByRole("cell"));
+  return texts(within(row).getAllByRole("cell", HIDDEN));
 }
 
 /** 相関行列（列の並びと、行ごとのセルの文字） */
 function correlationMatrix() {
-  const box = screen.getByRole("heading", { name: "相関行列" }).parentElement
-    .parentElement;
-  const names = headerTexts(box).filter((t) => t !== "列");
+  const box = screen.getByRole("heading", { name: "相関行列", ...HIDDEN })
+    .parentElement.parentElement;
+  const names = headerTexts(box, HIDDEN).filter((t) => t !== "列");
   const rows = within(box)
-    .getAllByRole("row")
-    .filter((r) => within(r).queryAllByRole("rowheader").length > 0)
-    .map((r) => texts(within(r).getAllByRole("cell")));
+    .getAllByRole("row", HIDDEN)
+    .filter((r) => within(r).queryAllByRole("rowheader", HIDDEN).length > 0)
+    .map((r) => texts(within(r).getAllByRole("cell", HIDDEN)));
   return { names, rows };
 }
 
@@ -308,14 +338,8 @@ describe("sales_excel_sjis.csv をアップロードして分析画面で見る"
 
   it("並べ替え: 合計の降順では、カンマ付きでも数値順（先頭は合計行 3,272,140、次が 344,400）", async () => {
     const user = await openSample("sales_excel_sjis.csv");
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "並べ替え" }),
-      "合計",
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "並べ替えの向き" }),
-      "desc",
-    );
+    const menu = await openColumnMenu(user, "合計");
+    await user.click(within(menu).getByRole("button", { name: "降順" }));
     await waitFor(() => expect(bodyRows(dataTable())[0][5]).toBe("3,272,140"));
     expect(bodyRows(dataTable())[1][5]).toBe("344,400");
   });
@@ -421,8 +445,11 @@ describe("survey.csv をアップロードして分析画面で見る", () => {
     // 文字の列は基本統計に出ない
     const stats = screen.getByRole("heading", {
       name: "基本統計",
+      ...HIDDEN,
     }).parentElement;
-    expect(within(stats).queryByRole("rowheader", { name: "感想" })).toBeNull();
+    expect(
+      within(stats).queryByRole("rowheader", { name: "感想", ...HIDDEN }),
+    ).toBeNull();
   });
 
   it("相関: 回答ID と 満足度の 2×2（対角 1.00・対称）", async () => {
@@ -438,11 +465,12 @@ describe("survey.csv をアップロードして分析画面で見る", () => {
   it("集計: 再来店ごとの件数は はい145・いいえ37・空欄18", async () => {
     const user = await openSample("survey.csv");
     await groupBy(user, ["再来店"]);
-    await addMetric(user, { fn: "count" });
+    // 件数は、文字の列（再来店）を値の枠に置いて数える。空欄のキーは「（空欄）」と出す
+    await addMetric(user, { column: "再来店", fn: "count" });
     expect(Object.fromEntries(bodyRows(aggregateResult()))).toEqual({
       はい: "145",
       いいえ: "37",
-      "": "18",
+      "（空欄）": "18",
     });
   });
 

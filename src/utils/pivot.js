@@ -52,6 +52,31 @@ function compareValue(type, a, b) {
   return compareText(a, b);
 }
 
+/**
+ * キーの id（Map のキー）。1 列ならその値そのもの。2 列以上は「長さ:値」をつなぐ
+ * （区切り文字に頼らないので "a / b" と "a","b" や、記号を含む値でも取り違えない。
+ * 列の数は 1 回のピボットの中で一定なので、1 列の値と 2 列以上の id は混ざらない）。
+ * 25 万行で毎行 JSON.stringify や配列を作ると重いので、行から直接作る。
+ */
+const joinId = (values) => {
+  let id = "";
+  for (const v of values) id += `${v.length}:${v}`;
+  return id;
+};
+const keyIdOf = (fields) => {
+  if (fields.length === 1) return (row) => row[fields[0]] ?? "";
+  return (row) => {
+    let id = "";
+    for (const name of fields) {
+      const v = row[name] ?? "";
+      id += `${v.length}:${v}`;
+    }
+    return id;
+  };
+};
+const idOfKey = (key) => (key.length === 1 ? key[0] : joinId(key));
+const keyOf = (fields, row) => fields.map((name) => row[name] ?? "");
+
 const newStats = (n) => ({
   count: 0,
   nums: Array.from({ length: n }, () => ({
@@ -101,21 +126,22 @@ export function pivot(rows, spec, typeOf) {
   ];
   const numIndex = new Map(numericColumns.map((name, i) => [name, i]));
 
-  // キーは JSON でつなぐ（"a / b" と "a","b" を区別する）
-  const groups = new Map(); // rowKeyJSON -> { rowKey, cols: Map<colKeyJSON, stats> }
-  const columnKeyMap = new Map(); // colKeyJSON -> colKey
+  const rowIdOf = keyIdOf(rowFields);
+  const colIdOf = keyIdOf(columnFields);
+  const groups = new Map(); // 行キーの id -> { rowKey, cols: Map<列キーの id, stats> }
+  const columnKeyMap = new Map(); // 列キーの id -> 列キー
   for (const row of rows) {
-    const rowKey = rowFields.map((name) => row[name] ?? "");
-    const colKey = columnFields.map((name) => row[name] ?? "");
-    const rowId = JSON.stringify(rowKey);
-    const colId = JSON.stringify(colKey);
+    const rowId = rowIdOf(row);
+    const colId = colIdOf(row);
 
     let group = groups.get(rowId);
     if (!group) {
-      group = { rowKey, cols: new Map() };
+      group = { rowKey: keyOf(rowFields, row), cols: new Map() };
       groups.set(rowId, group);
     }
-    if (!columnKeyMap.has(colId)) columnKeyMap.set(colId, colKey);
+    if (!columnKeyMap.has(colId)) {
+      columnKeyMap.set(colId, keyOf(columnFields, row));
+    }
     let stats = group.cols.get(colId);
     if (!stats) {
       stats = newStats(numericColumns.length);
@@ -145,7 +171,7 @@ export function pivot(rows, spec, typeOf) {
   const allKeys =
     columnFields.length === 0 && sortedKeys.length === 0 ? [[]] : sortedKeys;
   const columnKeys = allKeys.slice(0, COLUMN_KEY_LIMIT);
-  const colIds = columnKeys.map((key) => JSON.stringify(key));
+  const colIds = columnKeys.map(idOfKey);
 
   const records = [...groups.values()].map((group) => ({
     rowKey: group.rowKey,

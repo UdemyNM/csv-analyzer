@@ -20,6 +20,8 @@ export const OPERATORS = [
 
 const MENU_WIDTH = 280;
 const GAP = 8;
+/** 下にこれだけの高さが取れなければ、▼ の上に出す */
+const MIN_MENU_HEIGHT = 360;
 
 /**
  * 列見出しの ▼ メニュー（設計書 6.1）: 並べ替え・絞り込み（値から選ぶ／自由入力）・列の非表示。
@@ -145,7 +147,8 @@ function MenuPanel({
     firstRef.current?.focus();
   }, []);
 
-  // ▼ の真下に出す（画面の右端からはみ出さない）
+  // ▼ の真下に出す。下に十分な余白がなければ ▼ の上に出す。
+  // 高さは画面の中に収め（fixed なのでページをスクロールしても動かない）、右端からもはみ出さない
   const [position] = useState(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return {};
@@ -153,10 +156,17 @@ function MenuPanel({
       window.innerWidth -
       Math.min(MENU_WIDTH, window.innerWidth - 2 * GAP) -
       GAP;
-    return {
-      top: rect.bottom + 4,
-      left: Math.max(GAP, Math.min(rect.left, maxLeft)),
-    };
+    const left = Math.max(GAP, Math.min(rect.left, maxLeft));
+    const below = window.innerHeight - rect.bottom - 4 - GAP;
+    const above = rect.top - 4 - GAP;
+    if (below < MIN_MENU_HEIGHT && above > below) {
+      return {
+        bottom: window.innerHeight - rect.top + 4,
+        left,
+        maxHeight: above,
+      };
+    }
+    return { top: rect.bottom + 4, left, maxHeight: below };
   });
 
   const query = search.trim();

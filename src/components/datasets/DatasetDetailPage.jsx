@@ -1,18 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import "../../analysis.css";
 import { useCsvAnalysis } from "../../hooks/useCsvAnalysis.js";
-import { aggregate } from "../../utils/aggregate.js";
 import { filterRows, InvalidFilterError } from "../../utils/filterRows.js";
+import { buildRowIndex, excludeHiddenRows } from "../../utils/hiddenRows.js";
+import { pivot } from "../../utils/pivot.js";
+import { applyFieldMove } from "../../utils/pivotEdit.js";
 import { sortRows } from "../../utils/sortRows.js";
-import { AggregatePanel } from "../analysis/AggregatePanel.jsx";
+import { AnalysisTable } from "../analysis/AnalysisTable.jsx";
 import { CollapsibleSection } from "../analysis/CollapsibleSection.jsx";
 import { CorrelationMatrix } from "../analysis/CorrelationMatrix.jsx";
-import { DataTable } from "../analysis/DataTable.jsx";
 import { FilterBar } from "../analysis/FilterBar.jsx";
+import { PivotPanel } from "../analysis/PivotPanel.jsx";
 import { StatsPanel } from "../analysis/StatsPanel.jsx";
-import { metricOutputName } from "../analysis/aggregationNames.js";
 import { ChartBuilder } from "../charts/ChartBuilder.jsx";
+import { DraggableField, FieldDndProvider } from "../dnd/FieldDnd.jsx";
 import { SaveViewDialog } from "../views/SaveViewDialog.jsx";
 import { SavedViewSelect } from "../views/SavedViewSelect.jsx";
 import { EMPTY_CONFIG, sanitizeConfig } from "../views/viewConfig.js";
@@ -22,20 +24,14 @@ import { UploadNotice } from "./UploadNotice.jsx";
 const NO_ROWS = [];
 const NO_COLUMNS = [];
 
-/** 保存するグラフ設定の軸を、今の元データにある列（選択肢）に絞る。どちらも残らなければ null */
-function narrowChart(chart, xOptions, yOptions) {
-  if (!chart) return null;
-  const x = xOptions.includes(chart.x) ? chart.x : "";
-  const y = yOptions.includes(chart.y) ? chart.y : "";
-  return x === "" && y === "" ? null : { type: chart.type, x, y };
-}
-
 const isNotFound = (e) => e?.name === "NotFoundError";
 
 /**
- * データセット詳細（分析）画面 /datasets/:id（docs/03 7 章、docs/05）。
- * 設定（フィルタ・並べ替え・集計・グラフ）はこの画面が持ち、views.config と同じ形 { filters, sort, aggregation, chart } にする。
- * 全セクションは「フィルタ → 並べ替え」後の行を使う。
+ * データセット詳細（分析）画面 /datasets/:id（docs/03 7 章、docs/05、
+ * docs/superpowers/specs/2026-11-16-analysis-page-redesign-design.md）。
+ * 設定はこの画面が持ち、views.config と同じ形 { filters, sort, hiddenRows, hiddenColumns, pivot, chart } にする（設計書 9 章）。
+ * 行の流れ: 元の行 → 非表示の行を除く → 絞り込み → 並べ替え（設計書 6.2）。全セクションはこの後の行を使う。
+ * 配置: 左にデータ表、右上にグラフ、右下に集計（設計書 5.1）。統計・相関はその下に置き、初期は閉じる。
  */
 export function DatasetDetailPage({
   datasetRepository,
@@ -55,7 +51,7 @@ export function DatasetDetailPage({
   datasetRepositoryRef.current = datasetRepository;
   const viewRepositoryRef = useRef(viewRepository);
   viewRepositoryRef.current = viewRepository;
-  // 条件の追加時に検証のため計算した絞り込み結果（同じ rows・同じ条件の配列なら、表示でも使い回す）
+  // 条件の追加時に検証のため計算した絞り込み結果（同じ行・同じ条件の配列なら、表示でも使い回す）
   const validatedFilterRef = useRef(null);
 
   const [load, setLoad] = useState({ status: "loading" });
@@ -118,21 +114,40 @@ export function DatasetDetailPage({
   const rows = load.rows ?? NO_ROWS;
   const columns = load.columns ?? NO_COLUMNS;
   const columnNames = useMemo(() => columns.map((c) => c.name), [columns]);
+  const typeOf = useCallback(
+    (name) => columns.find((c) => c.name === name)?.type ?? "string",
+    [columns],
+  );
+  // 行オブジェクト → 元の行番号（並べ替え・絞り込み後の行から、隠す行を元の番号で覚える）
+  const rowIndex = useMemo(() => buildRowIndex(rows), [rows]);
+
+  // 非表示の行を除く（絞り込みより前）
+  const visibleRows = useMemo(
+    () => excludeHiddenRows(rows, settings.hiddenRows),
+    [rows, settings.hiddenRows],
+  );
 
   // フィルタ。不正な条件（ビュー由来）があるときは、絞り込まず全件を使う
   const filtered = useMemo(() => {
-    if (settings.filters.length === 0) return { rows, error: null };
+    if (settings.filters.length === 0) {
+      return { rows: visibleRows, error: null };
+    }
     const validated = validatedFilterRef.current;
-    if (validated?.rows === rows && validated.filters === settings.filters) {
+    if (
+      validated?.rows === visibleRows &&
+      validated.filters === settings.filters
+    ) {
       return { rows: validated.result, error: null };
     }
     try {
-      return { rows: filterRows(rows, settings.filters), error: null };
+      return { rows: filterRows(visibleRows, settings.filters), error: null };
     } catch (e) {
-      if (e instanceof InvalidFilterError) return { rows, error: e.message };
+      if (e instanceof InvalidFilterError) {
+        return { rows: visibleRows, error: e.message };
+      }
       throw e;
     }
-  }, [rows, settings.filters]);
+  }, [visibleRows, settings.filters]);
 
   const sorted = useMemo(() => {
     const { sort } = settings;
@@ -140,50 +155,51 @@ export function DatasetDetailPage({
     return sort && type ? sortRows(filtered.rows, sort, type) : filtered.rows;
   }, [filtered.rows, settings.sort, columns]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const aggregated = useMemo(
-    () =>
-      settings.aggregation ? aggregate(sorted, settings.aggregation) : null,
-    [sorted, settings.aggregation],
+  // ピボット（集計とグラフで同じ結果を使う）
+  const pivotResult = useMemo(
+    () => pivot(sorted, settings.pivot, typeOf),
+    [sorted, settings.pivot, typeOf],
   );
-
-  // グラフの元データと軸の選択肢: 集計があるときは集計結果、ないときは絞り込み後の行
-  const { chartRows, xOptions, yOptions } = useMemo(() => {
-    if (settings.aggregation) {
-      const outputs = settings.aggregation.metrics.map(metricOutputName);
-      return {
-        chartRows: aggregated,
-        xOptions: [...settings.aggregation.groupBy, ...outputs],
-        yOptions: outputs,
-      };
-    }
-    return {
-      chartRows: sorted,
-      xOptions: columnNames,
-      yOptions: columns.filter((c) => c.type === "number").map((c) => c.name),
-    };
-  }, [settings.aggregation, aggregated, sorted, columnNames, columns]);
 
   const changeSettings = (patch) => {
     setNotice(null);
     setSettings((prev) => ({ ...prev, ...patch }));
   };
 
-  const addFilter = (filter) => {
+  /** 列見出しのメニューの自由入力。通れば true、だめなら理由の文言を返す（メニューの中に出す） */
+  const addCondition = (filter) => {
     const next = [...settings.filters, filter];
     try {
       // 25 万行では 1 回 0.1〜0.3 秒かかるので、検証で計算した結果を表示にも使う（2 回計算しない）
       validatedFilterRef.current = {
-        rows,
+        rows: visibleRows,
         filters: next,
-        result: filterRows(rows, next),
+        result: filterRows(visibleRows, next),
       };
     } catch (e) {
       if (!(e instanceof InvalidFilterError)) throw e;
-      setNotice(`条件を追加できません: ${e.message}`);
-      return false;
+      return `条件を追加できません: ${e.message}`;
     }
     changeSettings({ filters: next });
     return true;
+  };
+
+  /** ドラッグ・「＋」・× による枠の操作（ピボットの行・列・値、散布図の X/Y） */
+  const moveField = (move) => {
+    const scatter = settings.chart?.scatter ?? null;
+    const next = applyFieldMove(
+      { pivot: settings.pivot, scatter },
+      move,
+      typeOf,
+    );
+    const patch = { pivot: next.pivot };
+    if (next.scatter !== scatter) {
+      patch.chart = {
+        type: settings.chart?.type ?? "bar",
+        scatter: next.scatter,
+      };
+    }
+    changeSettings(patch);
   };
 
   // ---- データセットの操作（作成者のみ） ----
@@ -221,29 +237,31 @@ export function DatasetDetailPage({
   };
 
   // ---- ビュー ----
-  const currentConfig = useMemo(
-    () => ({
-      filters: settings.filters,
-      sort: settings.sort,
-      aggregation: settings.aggregation,
-      chart: narrowChart(settings.chart, xOptions, yOptions),
-    }),
-    [settings, xOptions, yOptions],
-  );
+  // 保存する config は今の設定そのもの（新しい形）
+  const currentConfig = settings;
 
   const selectView = (viewId) => {
     setSelectedViewId(viewId);
     setViewWarning(null);
     const view = views.find((v) => v.id === viewId);
     if (!view) return;
-    const { config, disabled } = sanitizeConfig(view.config, columnNames);
+    const { config, disabled, notes } = sanitizeConfig(
+      view.config,
+      columnNames,
+      rows.length,
+    );
     setNotice(null);
+    validatedFilterRef.current = null;
     setSettings(config);
-    if (disabled.length > 0) {
-      setViewWarning(
-        `ビューの設定に、このデータにない列があったため無効にしました: ${disabled.join("、")}`,
-      );
-    }
+    const messages = [
+      ...(disabled.length > 0
+        ? [
+            `ビューの設定に、このデータにない列があったため無効にしました: ${disabled.join("、")}`,
+          ]
+        : []),
+      ...notes,
+    ];
+    if (messages.length > 0) setViewWarning(messages.join(" "));
   };
 
   const submitView = async (name) => {
@@ -378,42 +396,74 @@ export function DatasetDetailPage({
       )}
 
       <FilterBar
-        columns={columns}
         filters={settings.filters}
-        sort={settings.sort}
-        onAddFilter={addFilter}
+        hiddenRowCount={settings.hiddenRows.length}
+        hiddenColumns={settings.hiddenColumns}
         onRemoveFilter={(index) =>
           changeSettings({
             filters: settings.filters.filter((_, i) => i !== index),
           })
         }
-        onSortChange={(sort) => changeSettings({ sort })}
+        onShowAllRows={() => changeSettings({ hiddenRows: [] })}
+        onShowColumn={(name) =>
+          changeSettings({
+            hiddenColumns: settings.hiddenColumns.filter((c) => c !== name),
+          })
+        }
+        onClearAll={() =>
+          changeSettings({ filters: [], hiddenRows: [], hiddenColumns: [] })
+        }
       />
 
-      <CollapsibleSection title="データ表">
-        <DataTable columns={columns} rows={sorted} />
-      </CollapsibleSection>
+      <FieldDndProvider onMove={moveField}>
+        <div className="analysis-grid">
+          <div className="analysis-grid__table">
+            <CollapsibleSection title="データ表">
+              <AnalysisTable
+                columns={columns}
+                rows={sorted}
+                baseRows={visibleRows}
+                rowIndexOf={(row) => rowIndex.get(row)}
+                settings={settings}
+                onSettingsChange={changeSettings}
+                onAddCondition={addCondition}
+                renderLabel={(column) => (
+                  <DraggableField field={column.name} surface="table">
+                    {column.name}
+                  </DraggableField>
+                )}
+              />
+            </CollapsibleSection>
+          </div>
+          <div className="analysis-grid__chart">
+            <CollapsibleSection title="グラフ">
+              <ChartBuilder
+                columns={columns}
+                chart={settings.chart}
+                pivot={settings.pivot}
+                result={pivotResult}
+                filteredRows={filtered.rows}
+                onChartChange={(chart) => changeSettings({ chart })}
+                onMove={moveField}
+                onPivotChange={(next) => changeSettings({ pivot: next })}
+              />
+            </CollapsibleSection>
+          </div>
+          <div className="analysis-grid__pivot">
+            <CollapsibleSection title="集計">
+              <PivotPanel
+                columns={columns}
+                pivot={settings.pivot}
+                result={pivotResult}
+                onMove={moveField}
+                onPivotChange={(next) => changeSettings({ pivot: next })}
+              />
+            </CollapsibleSection>
+          </div>
+        </div>
+      </FieldDndProvider>
 
-      <CollapsibleSection title="グラフ">
-        <ChartBuilder
-          rows={chartRows}
-          xOptions={xOptions}
-          yOptions={yOptions}
-          chart={settings.chart}
-          onChartChange={(chart) => changeSettings({ chart })}
-        />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="集計">
-        <AggregatePanel
-          columns={columns}
-          aggregation={settings.aggregation}
-          resultRows={aggregated ?? NO_ROWS}
-          onAggregationChange={(aggregation) => changeSettings({ aggregation })}
-        />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="統計・相関">
+      <CollapsibleSection title="統計・相関" defaultOpen={false}>
         {/* 統計・相関は行の並びに依存しないので、並べ替え前（フィルタ後）の行を渡す（並べ替えで 25 万行を計算し直さない） */}
         <StatsPanel
           columns={columns}

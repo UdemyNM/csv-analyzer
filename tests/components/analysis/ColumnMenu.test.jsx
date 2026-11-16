@@ -272,3 +272,46 @@ describe("ColumnMenu: 列の非表示と目印", () => {
     expect(trigger()).not.toHaveAttribute("data-active");
   });
 });
+
+describe("ColumnMenu: 画面からはみ出さない位置（ブラウザでの確認で見つかった不具合）", () => {
+  it("▼ の下に十分な余白がなければ、▼ の上に出し、高さは画面に収める", async () => {
+    const { user } = setup();
+    vi.spyOn(trigger(), "getBoundingClientRect").mockReturnValue({
+      top: 600,
+      bottom: 640,
+      left: 100,
+      right: 144,
+      width: 44,
+      height: 40,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 768,
+      configurable: true,
+    });
+    await open(user);
+    const style = dialog().style;
+    expect(style.top).toBe("");
+    expect(style.bottom).toBe(`${768 - 600 + 4}px`); // ▼ の上端の 4px 上
+    expect(style.maxHeight).toBe(`${600 - 4 - 8}px`);
+  });
+
+  it("下に余白があれば ▼ の下に出し、高さは画面の下端までに収める", async () => {
+    const { user } = setup();
+    vi.spyOn(trigger(), "getBoundingClientRect").mockReturnValue({
+      top: 100,
+      bottom: 140,
+      left: 100,
+      right: 144,
+      width: 44,
+      height: 40,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 768,
+      configurable: true,
+    });
+    await open(user);
+    const style = dialog().style;
+    expect(style.top).toBe("144px");
+    expect(style.maxHeight).toBe(`${768 - 144 - 8}px`);
+  });
+});

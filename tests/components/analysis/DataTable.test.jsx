@@ -1,7 +1,7 @@
 // 対象: src/components/analysis/DataTable.jsx（名前付き export { DataTable }）
 // 仕様: docs/05 5 章「データ表は先頭N行のプレビュー（行数はフィルタ後の件数を併記）。大量行はページングする」、
 //       docs/04 Phase 5「大量行は先頭N件＋ページング」、docs/05 6 章「表は横スクロールの箱に入れる」、
-//       docs/05 5 章「集計結果の表も 1 ページ 100 行でページング」（AggregatePanel と共通の表）
+//       docs/05 5 章「集計結果の表も 1 ページ 100 行でページング」（集計結果の表は PivotTable。ページングは usePaging で共通）
 // 契約（細部は本テストで固定）:
 //   <DataTable columns={[{name,type}]} rows={object[]} label? />
 //   - 1 ページ 100 行。列の並びは columns の順。セルは rows の値をそのまま文字で出す

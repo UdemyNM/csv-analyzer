@@ -58,6 +58,29 @@ async function open() {
   return userEvent.setup();
 }
 
+/** データ表の列見出しのメニューを開く */
+async function openColumnMenu(user, column) {
+  await user.click(
+    screen.getByRole("button", {
+      name: new RegExp(`^「${column}」の列のメニュー`),
+    }),
+  );
+  return screen.getByRole("dialog", { name: `「${column}」の列の操作` });
+}
+
+/** 列見出しのメニューの自由入力で条件を足す */
+async function addFilter(user, column, op, value) {
+  const menu = await openColumnMenu(user, column);
+  await user.click(within(menu).getByRole("radio", { name: "自由入力" }));
+  await user.selectOptions(
+    within(menu).getByRole("combobox", { name: "演算子" }),
+    op,
+  );
+  await user.type(within(menu).getByRole("textbox", { name: "値" }), value);
+  await user.click(within(menu).getByRole("button", { name: "追加" }));
+  return menu;
+}
+
 const firstDataRow = () => {
   const region = screen.getByRole("region", { name: "データ表の内容" });
   return within(region)
@@ -73,14 +96,8 @@ describe("DatasetDetailPage: 無駄な再計算をしない", () => {
     expect(statsCalls).toBeGreaterThan(0);
     expect(firstDataRow()).toHaveTextContent("東京");
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "並べ替え" }),
-      "売上",
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "並べ替えの向き" }),
-      "desc",
-    );
+    const menu = await openColumnMenu(user, "売上");
+    await user.click(within(menu).getByRole("button", { name: "降順" }));
 
     expect(firstDataRow()).toHaveTextContent(/大阪.*2,?000/); // 売上の降順で先頭が変わった
     expect(statistics.mock.calls.length).toBe(statsCalls);
@@ -91,32 +108,26 @@ describe("DatasetDetailPage: 無駄な再計算をしない", () => {
     const user = await open();
     const statsCalls = statistics.mock.calls.length;
 
-    await user.click(screen.getByRole("button", { name: /条件を追加/ }));
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "列" }),
-      "店舗",
-    );
-    await user.type(screen.getByRole("textbox", { name: "値" }), "東京");
-    await user.click(screen.getByRole("button", { name: "追加" }));
+    await addFilter(user, "店舗", "eq", "東京");
 
     expect(statistics.mock.calls.length).toBeGreaterThan(statsCalls);
-    const stats = screen.getByRole("region", { name: "基本統計の表" });
+    // 統計・相関は初期で閉じている（中身は DOM にある）ので hidden も含めて探す
+    const stats = screen.getByRole("region", {
+      name: "基本統計の表",
+      hidden: true,
+    });
     // 東京は 2 行（数量 10・5 → 件数 2）。全体は 5 行なので、計算し直した結果が出ている
-    const row = within(stats).getByRole("row", { name: /数量/ });
-    expect(within(row).getAllByRole("cell")[0]).toHaveTextContent(/^2$/);
+    const row = within(stats).getByRole("row", { name: /数量/, hidden: true });
+    expect(
+      within(row).getAllByRole("cell", { hidden: true })[0],
+    ).toHaveTextContent(/^2$/);
   });
 
   it("条件を追加したとき、その条件での絞り込みは 1 回だけ計算する（検証と表示で 2 回計算しない）", async () => {
     const user = await open();
     filterRows.mockClear();
 
-    await user.click(screen.getByRole("button", { name: /条件を追加/ }));
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "列" }),
-      "店舗",
-    );
-    await user.type(screen.getByRole("textbox", { name: "値" }), "東京");
-    await user.click(screen.getByRole("button", { name: "追加" }));
+    await addFilter(user, "店舗", "eq", "東京");
 
     const withNewFilter = filterRows.mock.calls.filter(
       ([, filters]) => filters.length === 1,
@@ -127,26 +138,14 @@ describe("DatasetDetailPage: 無駄な再計算をしない", () => {
     ).toHaveTextContent("店舗 = 東京");
   });
 
-  it("不正な条件は、従来どおり追加されず理由が alert に出る", async () => {
+  it("不正な条件は追加されず、理由がメニューの中の alert に出る", async () => {
     const user = await open();
 
-    await user.click(screen.getByRole("button", { name: /条件を追加/ }));
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "列" }),
-      "売上",
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "演算子" }),
-      "gt",
-    );
-    await user.type(screen.getByRole("textbox", { name: "値" }), "abc");
-    await user.click(screen.getByRole("button", { name: "追加" }));
+    const menu = await addFilter(user, "売上", "gt", "abc");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect(within(menu).getByRole("alert")).toHaveTextContent(
       /条件を追加できません/,
     );
-    expect(
-      screen.queryByRole("list", { name: "絞り込み条件" }),
-    ).toBeEmptyDOMElement();
+    expect(screen.queryByRole("list", { name: "絞り込み条件" })).toBeNull();
   });
 });

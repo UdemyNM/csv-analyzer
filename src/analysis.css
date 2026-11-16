@@ -457,7 +457,7 @@
   position: fixed;
   z-index: 20;
   width: min(280px, calc(100vw - 16px));
-  max-height: min(560px, calc(100vh - 32px));
+  max-height: 560px; /* 画面に収める高さは、開くときに style で上書きする */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -735,4 +735,55 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ---- 配置: 左にデータ表、右上にグラフ、右下に集計（設計書 5.1） ---- */
+/* 分析画面だけ横幅の上限を広げる */
+.page:has(> .detail) {
+  max-width: 1600px;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.analysis-grid > * {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .analysis-grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-areas:
+      "table chart"
+      "table pivot";
+  }
+
+  .analysis-grid__table {
+    grid-area: table;
+  }
+
+  .analysis-grid__chart {
+    grid-area: chart;
+  }
+
+  .analysis-grid__pivot {
+    grid-area: pivot;
+  }
+
+  /* データ表は箱の中で縦にスクロールし、見出しを固定する */
+  .analysis-grid__table .table-scroll {
+    max-height: calc(100vh - 200px);
+    overflow: auto;
+  }
+
+  .analysis-grid__table .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-surface);
+  }
 }

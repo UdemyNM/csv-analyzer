@@ -1,160 +1,231 @@
-// 対象: src/components/charts/ChartBuilder.jsx（名前付き export { ChartBuilder }）
-// 仕様: docs/03 1・7 章「グラフ（軸・種類の選択つき）」「集計があるとき、グラフの元データは集計結果（X軸の選択肢は groupBy の列と
-//       指標の出力名、Y軸は指標の出力名）。集計を外して軸が消えたら、グラフは描かない」、docs/05 2・8 章
-// 契約（細部は本テストで固定）:
-//   <ChartBuilder rows={object[]} xOptions={string[]} yOptions={string[]}
-//                 chart={{type,x,y}|null} onChartChange={(chart)=>void} />
-//   - 元データ rows と、軸の選択肢（xOptions / yOptions）は親（詳細画面）が決めて渡す（集計の有無で変わる）
-//   - select「グラフの種類」（value = bar/line/pie/scatter。表示は 棒/折れ線/円/散布図）、select「X軸」、select「Y軸」
-//     （option の value = 列名。value="" の「未選択」を含めてよい）
-//   - 変更すると onChartChange({type, x, y}) に、現在の chart と変更後の値を合わせた全体を渡す（chart が null のときの type は既定 'bar'、未選択の軸は ''）
-//   - chart の x が xOptions に、y が yOptions にあるときだけ ChartView（role=img）を描く。無いときは描かない
-//   - ChartView は recharts の ResponsiveContainer を使う（このテストでは固定サイズに差し替え）
+// 対象: src/components/charts/ChartBuilder.jsx（ピボットグラフ。設計書 8 章）
+// 契約:
+//   <ChartBuilder columns chart pivot result filteredRows onChartChange(chart) onMove(move) onPivotChange(pivot) />
+//   （FieldDndProvider の中で使う）
+//   - 種類はボタン 4 つ（棒・折れ線・円・散布図。aria-pressed）。chart が null なら棒
+//   - 棒・折れ線・円: 「X軸」「系列」「Y軸」の枠 = 集計の行・列・値（onMove の slot は rows / columns / values）
+//   - 散布図: 「X軸」「Y軸」の枠（scatterX / scatterY。数値の列だけ選べる）。描くのは filteredRows
+//   - 注記: 系列が 8 を超えたら / 円で系列が 2 つ以上なら。値が無い・散布図の軸が揃わないときは案内文
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChartBuilder } from "../../../src/components/charts/ChartBuilder.jsx";
+import { FieldDndProvider } from "../../../src/components/dnd/FieldDnd.jsx";
+import { pivot as runPivot } from "../../../src/utils/pivot.js";
+import { col } from "../../components/uiAnalysisHelpers.jsx";
 
 vi.mock("recharts", async (orig) =>
   (await import("../uiAnalysisHelpers.jsx")).withSizedContainer(await orig()),
 );
 
-const ROWS = [
-  { 店舗: "東京", 売上: "1000" },
-  { 店舗: "大阪", 売上: "2000" },
-  { 店舗: "名古屋", 売上: "800" },
+const COLUMNS = [
+  col("店舗", "string"),
+  col("商品", "string"),
+  col("数量", "number"),
+  col("売上", "number"),
 ];
-
-const setup = (props = {}) => {
-  const onChartChange = vi.fn();
-  const user = userEvent.setup();
-  const utils = render(
-    <ChartBuilder
-      rows={ROWS}
-      xOptions={["店舗", "売上"]}
-      yOptions={["売上"]}
-      chart={{ type: "bar", x: "店舗", y: "売上" }}
-      onChartChange={onChartChange}
-      {...props}
-    />,
-  );
-  return { user, onChartChange, ...utils };
+const ROWS = [
+  { 店舗: "東京", 商品: "りんご", 数量: "1", 売上: "1000" },
+  { 店舗: "東京", 商品: "みかん", 数量: "2", 売上: "500" },
+  { 店舗: "大阪", 商品: "りんご", 数量: "3", 売上: "2000" },
+];
+const typeOf = (name) => COLUMNS.find((c) => c.name === name)?.type ?? "string";
+const PIVOT = {
+  rows: ["店舗"],
+  columns: [],
+  values: [{ column: "売上", fn: "sum" }],
 };
 
-const optionValues = (name) =>
-  within(screen.getByRole("combobox", { name }))
-    .getAllByRole("option")
-    .map((o) => o.value);
+function setup({ chart = null, pivot = PIVOT, rows = ROWS } = {}) {
+  const onChartChange = vi.fn();
+  const onMove = vi.fn();
+  const onPivotChange = vi.fn();
+  const utils = render(
+    <FieldDndProvider onMove={onMove}>
+      <ChartBuilder
+        columns={COLUMNS}
+        chart={chart}
+        pivot={pivot}
+        result={runPivot(rows, pivot, typeOf)}
+        filteredRows={rows}
+        onChartChange={onChartChange}
+        onMove={onMove}
+        onPivotChange={onPivotChange}
+      />
+    </FieldDndProvider>,
+  );
+  return {
+    user: userEvent.setup(),
+    onChartChange,
+    onMove,
+    onPivotChange,
+    ...utils,
+  };
+}
 
-describe("ChartBuilder: 選択肢", () => {
-  it("グラフの種類に 棒/折れ線/円/散布図 を選べる", () => {
-    setup();
-    expect(optionValues("グラフの種類")).toEqual(
-      expect.arrayContaining(["bar", "line", "pie", "scatter"]),
-    );
-  });
+const typeButton = (name) =>
+  within(screen.getByRole("group", { name: "グラフの種類" })).getByRole(
+    "button",
+    { name },
+  );
 
-  it("X軸・Y軸の選択肢は、渡された xOptions / yOptions", () => {
-    setup({
-      xOptions: ["店舗", "売上_sum"],
-      yOptions: ["売上_sum"],
-      chart: null,
-    });
-    expect(optionValues("X軸")).toEqual(
-      expect.arrayContaining(["店舗", "売上_sum"]),
-    );
-    expect(optionValues("Y軸")).toContain("売上_sum");
-    expect(optionValues("Y軸")).not.toContain("店舗");
-  });
-
-  it("渡された chart を選択状態として表示する", () => {
-    setup({ chart: { type: "line", x: "店舗", y: "売上" } });
-    expect(screen.getByRole("combobox", { name: "グラフの種類" })).toHaveValue(
-      "line",
-    );
-    expect(screen.getByRole("combobox", { name: "X軸" })).toHaveValue("店舗");
-    expect(screen.getByRole("combobox", { name: "Y軸" })).toHaveValue("売上");
-  });
-});
-
-describe("ChartBuilder: 変更", () => {
-  it("種類を変えると、軸はそのままで onChartChange", async () => {
+describe("ChartBuilder: 種類", () => {
+  it("chart が null なら棒が押された状態。折れ線を押すと onChartChange", async () => {
     const { user, onChartChange } = setup();
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "グラフの種類" }),
-      "line",
-    );
-    expect(onChartChange).toHaveBeenCalledWith({
-      type: "line",
-      x: "店舗",
-      y: "売上",
-    });
+    expect(typeButton("棒")).toHaveAttribute("aria-pressed", "true");
+    expect(typeButton("折れ線")).toHaveAttribute("aria-pressed", "false");
+    await user.click(typeButton("折れ線"));
+    expect(onChartChange).toHaveBeenCalledWith({ type: "line", scatter: null });
   });
 
-  it("X軸・Y軸を変えると onChartChange", async () => {
+  it("散布図から棒に戻しても scatter は残す", async () => {
     const { user, onChartChange } = setup({
-      xOptions: ["店舗", "商品"],
-      yOptions: ["売上", "数量"],
+      chart: { type: "scatter", scatter: { x: "数量", y: "売上" } },
     });
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "X軸" }),
-      "商品",
-    );
-    expect(onChartChange).toHaveBeenLastCalledWith({
+    await user.click(typeButton("棒"));
+    expect(onChartChange).toHaveBeenCalledWith({
       type: "bar",
-      x: "商品",
-      y: "売上",
+      scatter: { x: "数量", y: "売上" },
     });
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Y軸" }),
-      "数量",
-    );
-    expect(onChartChange).toHaveBeenLastCalledWith({
-      type: "bar",
-      x: "店舗",
-      y: "数量",
-    });
-  });
-
-  it("chart が null のとき X軸を選ぶと、x を持つ chart を渡す", async () => {
-    const { user, onChartChange } = setup({ chart: null });
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "X軸" }),
-      "店舗",
-    );
-    expect(onChartChange).toHaveBeenCalledTimes(1);
-    expect(onChartChange.mock.calls[0][0]).toEqual(
-      expect.objectContaining({ x: "店舗" }),
-    );
   });
 });
 
-describe("ChartBuilder: 描画", () => {
-  it("軸が選択肢にあるとき、グラフ（role=img）を描く", () => {
+describe("ChartBuilder: 共通の枠（集計の行・列・値）", () => {
+  it("X軸・系列・Y軸の枠があり、集計の設定が出ている", () => {
     setup();
-    expect(screen.getByRole("img")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("group", { name: "X軸" })).getByText("店舗"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "系列" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("group", { name: "Y軸" })).getByText(
+        "売上・合計",
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("chart が null（軸が未選択）のときは描かない", () => {
-    setup({ chart: null });
-    expect(screen.queryByRole("img")).toBeNull();
-  });
-
-  it("X軸が選択肢にない（集計を外して軸が消えた）ときは描かない", () => {
-    setup({
-      xOptions: ["店舗"],
-      yOptions: ["売上"],
-      chart: { type: "bar", x: "店舗", y: "売上_sum" },
+  it("X軸の「＋」で商品 → onMove（集計の rows と同じ）", async () => {
+    const { user, onMove } = setup();
+    await user.click(screen.getByRole("button", { name: "X軸に列を追加" }));
+    await user.click(
+      within(screen.getByRole("list", { name: "X軸に追加する列" })).getByRole(
+        "button",
+        {
+          name: "商品",
+        },
+      ),
+    );
+    expect(onMove).toHaveBeenCalledWith({
+      field: "商品",
+      from: null,
+      to: { slot: "rows" },
     });
-    expect(screen.queryByRole("img")).toBeNull();
   });
 
-  it("Y軸が選択肢にないときも描かない", () => {
+  it("集計の結果からグラフを描く（role=img、X軸は行の列名）", () => {
+    setup();
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "aria-label",
+      "棒グラフ: X軸 店舗、系列 売上・合計",
+    );
+  });
+
+  it("値が無いときは案内文", () => {
+    setup({ pivot: { rows: ["店舗"], columns: [], values: [] } });
+    expect(
+      screen.getByText("Y軸（集計の値）に列を置くと、グラフを表示します"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+});
+
+describe("ChartBuilder: 注記", () => {
+  it("系列が 9 つなら「先頭 8 系列だけ」", () => {
+    const rows = Array.from({ length: 9 }, (_, i) => ({
+      店舗: "東京",
+      商品: `p${i}`,
+      数量: "1",
+      売上: "1",
+    }));
     setup({
-      xOptions: ["店舗", "売上_sum"],
-      yOptions: ["売上"],
-      chart: { type: "bar", x: "売上_sum", y: "売上_sum" },
+      rows,
+      pivot: {
+        rows: ["店舗"],
+        columns: ["商品"],
+        values: [{ column: "売上", fn: "sum" }],
+      },
     });
-    expect(screen.queryByRole("img")).toBeNull();
+    expect(
+      screen.getByText(
+        "系列が多いため、先頭 8 系列だけを描いています（全 9 系列）",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("円で系列が 2 つ以上なら「最初の系列だけ」", () => {
+    setup({
+      chart: { type: "pie", scatter: null },
+      pivot: {
+        rows: ["店舗"],
+        columns: ["商品"],
+        values: [{ column: "売上", fn: "sum" }],
+      },
+    });
+    expect(
+      screen.getByText("円グラフは最初の系列（みかん）だけを描いています"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("ChartBuilder: 散布図", () => {
+  it("X/Y の枠になり、「＋」では数値の列だけ選べる", async () => {
+    const { user, onMove } = setup({
+      chart: { type: "scatter", scatter: null },
+    });
+    expect(
+      screen.queryByRole("group", { name: "系列" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "X軸に列を追加" }));
+    const list = screen.getByRole("list", { name: "X軸に追加する列" });
+    expect(
+      within(list)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["数量", "売上"]);
+    await user.click(within(list).getByRole("button", { name: "数量" }));
+    expect(onMove).toHaveBeenCalledWith({
+      field: "数量",
+      from: null,
+      to: { slot: "scatterX" },
+    });
+  });
+
+  it("X/Y が揃わないときは案内文", () => {
+    setup({ chart: { type: "scatter", scatter: { x: "数量", y: "" } } });
+    expect(
+      screen.getByText("X軸とY軸に数値の列を置くと、散布図を表示します"),
+    ).toBeInTheDocument();
+  });
+
+  it("X/Y が揃えば元の行で散布図を描く", () => {
+    setup({ chart: { type: "scatter", scatter: { x: "数量", y: "売上" } } });
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "aria-label",
+      "散布図: X軸 数量、Y軸 売上",
+    );
+  });
+
+  it("散布図の軸の × で onMove（scatterX から外す）", async () => {
+    const { user, onMove } = setup({
+      chart: { type: "scatter", scatter: { x: "数量", y: "売上" } },
+    });
+    await user.click(
+      screen.getByRole("button", { name: "X軸から「数量」を外す" }),
+    );
+    expect(onMove).toHaveBeenCalledWith({
+      field: "数量",
+      from: { slot: "scatterX", index: 0 },
+      to: null,
+    });
   });
 });

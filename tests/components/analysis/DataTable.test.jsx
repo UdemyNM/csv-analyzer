@@ -9,7 +9,7 @@
 //   - 件数: 文字に「N 件」（N は rows の全件数）を含める
 //   - ページング: ボタン「前へ」「次へ」と、文字「現在ページ / 総ページ」（例: 1 / 3）。先頭では「前へ」、最終では「次へ」を無効にするか、出さない
 //   - rows が変わって現在ページが範囲外になったら、範囲内のページに戻る
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DataTable } from "../../../src/components/analysis/DataTable.jsx";
@@ -150,5 +150,49 @@ describe("DataTable: ページング（1 ページ 100 行）", () => {
     rerender(<DataTable columns={COLUMNS} rows={makeRows(50)} />);
     expect(bodyRows()).toHaveLength(50);
     expect(screen.getByText(/50\s*件/)).toBeInTheDocument();
+  });
+});
+
+describe("DataTable: 見出しの差し込みと行の非表示（設計書 6.2）", () => {
+  it("onHideRow があるとき、行の左端のボタンで元の行番号を渡す", async () => {
+    const user = userEvent.setup();
+    const rows = makeRows(3).reverse(); // 並べ替え後のような順
+    const index = new Map(makeRows(3).map((r, i) => [r.id, i]));
+    const onHideRow = vi.fn();
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={rows}
+        rowIndexOf={(row) => index.get(row.id)}
+        onHideRow={onHideRow}
+      />,
+    );
+    // 先頭の行は id=3（元の行番号 2）
+    await user.click(screen.getByRole("button", { name: "3 行目を非表示" }));
+    expect(onHideRow).toHaveBeenCalledWith(2);
+  });
+
+  it("onHideRow が無ければ、行のボタンも見出しの列も増えない", () => {
+    render(<DataTable columns={COLUMNS} rows={makeRows(2)} />);
+    expect(
+      screen.queryByRole("button", { name: /行目を非表示/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader")).toHaveLength(2);
+  });
+
+  it("renderHeader と headerAttrs で見出しを差し替えられる", () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={makeRows(1)}
+        renderHeader={(c) => <span>{`[${c.name}]`}</span>}
+        headerAttrs={(c) =>
+          c.name === "id" ? { "aria-sort": "descending" } : {}
+        }
+      />,
+    );
+    const headers = screen.getAllByRole("columnheader");
+    expect(headers[0]).toHaveTextContent("[id]");
+    expect(headers[0]).toHaveAttribute("aria-sort", "descending");
   });
 });

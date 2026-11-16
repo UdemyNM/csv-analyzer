@@ -25,10 +25,7 @@ describe("CollapsibleSection", () => {
       screen.getByRole("heading", { name: /データ表/ }),
     ).toBeInTheDocument();
     expect(screen.getByText("表の中身")).toBeVisible();
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "true");
   });
 
   it("開閉ボタンは aria-controls で中身（region）を指し、閉じていても参照先がある", async () => {
@@ -81,10 +78,7 @@ describe("CollapsibleSection", () => {
     expect(regionOf("グラフ")).not.toBeVisible();
 
     await user.click(screen.getByText("グラフ"));
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "true");
   });
 
   it("複数のセクションは独立して開閉する", async () => {
@@ -107,5 +101,22 @@ describe("CollapsibleSection", () => {
     expect(first.getAttribute("aria-controls")).not.toBe(
       second.getAttribute("aria-controls"),
     );
+  });
+});
+
+describe("CollapsibleSection: defaultOpen（設計書 5.1: 統計・相関は初期で閉じる）", () => {
+  it("defaultOpen={false} なら最初は閉じていて、押すと開く", async () => {
+    const user = userEvent.setup();
+    render(
+      <CollapsibleSection title="統計・相関" defaultOpen={false}>
+        <p>統計の中身</p>
+      </CollapsibleSection>,
+    );
+    const toggle = screen.getByRole("button");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("統計の中身")).not.toBeVisible();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("統計の中身")).toBeVisible();
   });
 });

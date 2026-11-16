@@ -1,0 +1,47 @@
+name: PR Test and Merge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  # テストが通ったら自動でマージし、本番（GitHub Pages）へ公開する。
+  # 公開リポジトリなので、フォークからのPRや他人のPRは自動マージしない。
+  merge-and-deploy:
+    needs: test
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+    steps:
+      - name: PRをスカッシュマージ
+        run: gh pr merge "$PR_URL" --squash --delete-branch
+      # GITHUB_TOKEN によるマージでは push トリガーが動かないため、公開を明示的に起動する
+      - name: 本番へ公開
+        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main

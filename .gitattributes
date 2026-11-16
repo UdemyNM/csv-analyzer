@@ -1,0 +1,2 @@
+# Shift_JIS/CRLF の検証用サンプル。改行コードを変換しない
+samples/sales_excel_sjis.csv -text

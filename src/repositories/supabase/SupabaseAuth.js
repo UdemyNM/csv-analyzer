@@ -9,17 +9,14 @@ const WRONG_CREDENTIALS = "メールアドレスまたはパスワードが違�
 const SIGN_IN_FAILED =
   "ログインできませんでした。時間をおいて、もう一度お試しください";
 
-/**
- * Supabase の user を User（id・email・displayName）にする。内部情報は出さない。
- * 表示名は app_metadata.display_name（管理者だけが設定できる）。user_metadata は本人が書き換えられるので使わない。
- */
+/** Supabase の user を User（id・email・displayName）にする。内部情報は出さない。 */
 const toUser = (authUser) =>
   authUser
     ? {
         id: authUser.id,
         email: authUser.email ?? "",
         displayName:
-          authUser.app_metadata?.display_name || authUser.email || "",
+          authUser.user_metadata?.display_name || authUser.email || "",
       }
     : null;
 

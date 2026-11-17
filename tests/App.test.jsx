@@ -1,10 +1,9 @@
 // 対象: src/App.jsx（default export）。HashRouter を内部に持つ
 // 仕様: docs/05 2 章（画面とパス）、docs/03 1・4 章、docs/04 Phase 4・5b、FR-01・02・10・13
-// 契約: <App auth={AuthRepository} datasets={DatasetRepository} views={ViewRepository} profiles?={...} createWorker?={...} />
+// 契約: <App auth={AuthRepository} datasets={DatasetRepository} views={ViewRepository} createWorker?={...} />
 //   - 未ログインは、どのパスでも /login（ログイン画面）へ。ログイン成功で / へ
 //   - / は DropZone＋自分と全員公開の一覧。ヘッダー（AppHeader）にログアウト。擬似ユーザー切替は無い（ユーザーは管理者が Supabase で作る）
-//   - 作成者名は、自分のものはログイン中のユーザーの表示名。他人のものは profiles.listDisplayNames() の表示名
-//     （profiles が無い・取得に失敗した・載っていないときは「不明なユーザー」）
+//   - 作成者名は、自分のものはログイン中のユーザーの表示名。他人のものは当面「不明なユーザー」（profiles テーブルは共有の段階で作る）
 //   - /upload のルートは無い（ヘッダーにもリンクが無い）
 //   - /datasets/:id は src/components/datasets/DatasetDetailPage.jsx（default export）を React.lazy で読む。
 //     別トラックが作るファイルなので、このテストでは vi.mock で代替する（スタブは id と location.state.justUploaded を表示）
@@ -48,12 +47,7 @@ const seedDataset = (env, name, visibility) =>
     meta: META,
   });
 
-async function setup({
-  signedInAs,
-  hash = "#/",
-  datasetsOverride,
-  profiles,
-} = {}) {
+async function setup({ signedInAs, hash = "#/", datasetsOverride } = {}) {
   const env = await createLocalEnv();
   for (const key of ["alice", "bob"]) {
     await signInAs(env, key);
@@ -69,7 +63,6 @@ async function setup({
       auth={env.auth}
       datasets={datasets}
       views={env.views}
-      profiles={profiles}
       createWorker={createAutoWorker()}
     />,
   );
@@ -167,36 +160,6 @@ describe("App: 一覧＋ドロップ枠（/）", () => {
       .closest("li");
     expect(within(own).getByText("非公開")).toBeInTheDocument();
     expect(within(own).getByText(/Alice/)).toBeInTheDocument();
-  });
-
-  it("profiles があれば、他人のものにも作成者の表示名が出る", async () => {
-    const profiles = {
-      listDisplayNames: vi.fn(async () => ({ "u-bob": "ボブ" })),
-    };
-    await setup({ signedInAs: "alice", profiles });
-    const item = (
-      await screen.findByRole("link", { name: "bob-shared.csv" })
-    ).closest("li");
-    expect(await within(item).findByText(/ボブ/)).toBeInTheDocument();
-    // 自分の表示名は、ログイン中のユーザーのものを使う
-    const own = screen
-      .getByRole("link", { name: "alice-private.csv" })
-      .closest("li");
-    expect(within(own).getByText(/Alice/)).toBeInTheDocument();
-  });
-
-  it("profiles の取得に失敗しても、一覧は出て他人は「不明なユーザー」", async () => {
-    const profiles = {
-      listDisplayNames: vi.fn(async () => {
-        throw new Error("network");
-      }),
-    };
-    await setup({ signedInAs: "alice", profiles });
-    const item = (
-      await screen.findByRole("link", { name: "bob-shared.csv" })
-    ).closest("li");
-    expect(within(item).getByText(/不明なユーザー/)).toBeInTheDocument();
-    expect(profiles.listDisplayNames).toHaveBeenCalled();
   });
 
   it("ヘッダーにアップロードへのリンクが無い（/upload は廃止）", async () => {

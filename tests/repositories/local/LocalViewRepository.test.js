@@ -1,7 +1,7 @@
-// 対象: tests/repositories/local/LocalViewRepository.js（IndexedDB 実装）
+// 対象: src/repositories/local/LocalViewRepository.js（IndexedDB 実装）
 import { describe, it, expect } from "vitest";
 import { LocalAuth } from "./LocalAuth.js";
-import { LocalViewRepository } from "./LocalViewRepository.js";
+import { LocalViewRepository } from "../../../src/repositories/local/LocalViewRepository.js";
 import { describeViewRepositoryContract } from "../contract/viewRepository.contract.js";
 import { USERS, VIEW_CONFIG, sampleCreateInput } from "../contract/fixtures.js";
 import { createLocalEnv, uniqueDbName } from "./createLocalEnv.js";

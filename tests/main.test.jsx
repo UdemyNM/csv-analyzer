@@ -2,9 +2,9 @@
 // 仕様: CLAUDE.md フォルダ構成（main.jsx）、docs/01 FR-01（ユーザーは管理者が Supabase で作る）、docs/05 7 章（共通CSS src/styles.css）
 // 契約:
 //   - 環境変数 VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY から Supabase のクライアントを作り、
-//     #root に <App auth datasets views profiles /> を描画する（App は本テストでは vi.mock で代替）
+//     #root に <App auth datasets views /> を描画する（App は本テストでは vi.mock で代替）
 //   - auth は SupabaseAuth。擬似ユーザー切替（switchUser / listUsers）は無い
-//   - datasets / views / profiles も Supabase 実装（Phase 8b。IndexedDB は使わない）
+//   - datasets / views は当面 Local の IndexedDB 実装（Supabase への移行は次の段階）
 //   - 環境変数が無い・不正なら、App を出さずに設定エラーを role=alert で出す（擬似ユーザーへ逃がさない）
 //   - src/styles.css を import する
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe("main.jsx", () => {
-  it("Supabase の設定があれば、Supabase の auth / datasets / views / profiles で App を描画する", async () => {
+  it("Supabase の設定があれば、SupabaseAuth と Local の datasets / views で App を描画する", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://abcdefgh.supabase.co");
     vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test");
     await import("../src/main.jsx");
@@ -49,23 +49,13 @@ describe("main.jsx", () => {
 
     const { SupabaseAuth } =
       await import("../src/repositories/supabase/SupabaseAuth.js");
-    const { SupabaseDatasetRepository } =
-      await import("../src/repositories/supabase/SupabaseDatasetRepository.js");
-    const { SupabaseViewRepository } =
-      await import("../src/repositories/supabase/SupabaseViewRepository.js");
-    const { SupabaseProfileRepository } =
-      await import("../src/repositories/supabase/SupabaseProfileRepository.js");
     const props = globalThis.__appProps;
     expect(props.auth).toBeInstanceOf(SupabaseAuth);
     expect(props.auth.switchUser).toBeUndefined();
     expect(props.auth.listUsers).toBeUndefined();
-    expect(props.datasets).toBeInstanceOf(SupabaseDatasetRepository);
-    expect(props.views).toBeInstanceOf(SupabaseViewRepository);
-    expect(props.profiles).toBeInstanceOf(SupabaseProfileRepository);
-  });
-
-  it("IndexedDB の実装を読み込まない", () => {
-    expect(source()).not.toMatch(/repositories\/local|IndexedDB|indexedDB/);
+    expect(typeof props.datasets.list).toBe("function");
+    expect(typeof props.datasets.create).toBe("function");
+    expect(typeof props.views.listByDataset).toBe("function");
   });
 
   it("Supabase の設定が無ければ、App を出さずに設定エラーを出す", async () => {

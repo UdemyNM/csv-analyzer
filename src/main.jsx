@@ -2,13 +2,13 @@ import "./styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
+import { LocalDatasetRepository } from "./repositories/local/LocalDatasetRepository.js";
+import { LocalViewRepository } from "./repositories/local/LocalViewRepository.js";
 import { SupabaseAuth } from "./repositories/supabase/SupabaseAuth.js";
-import { SupabaseDatasetRepository } from "./repositories/supabase/SupabaseDatasetRepository.js";
-import { SupabaseProfileRepository } from "./repositories/supabase/SupabaseProfileRepository.js";
-import { SupabaseViewRepository } from "./repositories/supabase/SupabaseViewRepository.js";
 import { createSupabaseClient } from "./repositories/supabase/createSupabaseClient.js";
 
-// 認証・データ・CSV 原本はすべて Supabase（テーブル・RLS・Storage は supabase/migrations/）
+// データ・ファイルは当面ブラウザ内（IndexedDB）。Supabase への移行（テーブル・RLS・Storage）は次の段階
+const DB_NAME = "csv-analyzer";
 
 /** 接続設定が無い・不正なときの画面。擬似ユーザーなどへは逃がさない。 */
 function ConfigError({ message }) {
@@ -30,12 +30,9 @@ function createApp() {
       key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     });
     const auth = new SupabaseAuth({ client });
-    const datasets = new SupabaseDatasetRepository({ client, auth });
-    const views = new SupabaseViewRepository({ client, auth });
-    const profiles = new SupabaseProfileRepository({ client });
-    return (
-      <App auth={auth} datasets={datasets} views={views} profiles={profiles} />
-    );
+    const datasets = new LocalDatasetRepository({ auth, dbName: DB_NAME });
+    const views = new LocalViewRepository({ auth, dbName: DB_NAME });
+    return <App auth={auth} datasets={datasets} views={views} />;
   } catch (e) {
     if (e?.name !== "SupabaseConfigError") throw e;
     return <ConfigError message={e.message} />;

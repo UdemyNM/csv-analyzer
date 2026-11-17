@@ -16,6 +16,9 @@ export class SupabaseProfileRepository {
       .from("profiles")
       .select("id, display_name");
     if (error || !data) return {};
-    return Object.fromEntries(data.map((p) => [p.id, p.display_name]));
+    // 表示名が無い人は返さない（画面は「不明なユーザー」）
+    return Object.fromEntries(
+      data.filter((p) => p.display_name).map((p) => [p.id, p.display_name]),
+    );
   }
 }

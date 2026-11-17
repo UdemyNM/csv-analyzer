@@ -69,6 +69,7 @@
 
 ```
 profiles   : id(uuid, = auth.users.id) / display_name / created_at   ※auth.users のトリガーで自動作成・更新
+             display_name は app_metadata.display_name（管理者だけが設定）。無ければ空。メールアドレスは入れない
 datasets   : id / owner_id→profiles(既定値 auth.uid()) / name / visibility('private'|'shared')
              / meta(jsonb: 行数・文字コード・列情報など。Repository の meta をそのまま)
              / file_size / storage_path(生成列 = owner_id/id.csv) / created_at / updated_at

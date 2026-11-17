@@ -59,7 +59,7 @@ npx supabase db push --remote
 5. ダッシュボードで確かめる
    - Table Editor: `profiles` / `datasets` / `views` があり、どれも RLS が有効（「RLS disabled」の表示が無い）
    - `profiles` に、発行済みのユーザーが入っている
-   - 表示名は `app_metadata.display_name` から取る（docs/06 の手順 3 の 4）。無いユーザーはメールアドレスになる。
+   - 表示名は `app_metadata.display_name` から取る（docs/06 の手順 3 の 4）。無いユーザーは、他の人の画面で「不明なユーザー」になる（メールアドレスは `profiles` に入れない）。
      以前 `user_metadata` に表示名を入れていた場合は、`app_metadata` に付け直す
    - Storage: `csv-files` があり、Public になっていない
 

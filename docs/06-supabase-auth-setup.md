@@ -27,7 +27,8 @@ curl -s -X POST "https://<project-ref>.supabase.co/auth/v1/signup" -H "apikey: <
 1. Authentication → Users →「Add user」→「Create new user」
 2. メールアドレスと初期パスワードを入れる。メール確認を使わないので「Auto Confirm User」にチェックする
 3. 初期パスワードは安全な方法で本人に渡す（チャットやメールに平文で残さない）
-4. 表示名（任意）: アプリは `app_metadata.display_name` を表示名に使う。無ければメールアドレスを表示する。
+4. 表示名（全員に付けることを推奨）: アプリは `app_metadata.display_name` を表示名に使う。
+   無い人は、本人のヘッダーにはメールアドレス、他の人の画面の作成者名には「不明なユーザー」と出る（メールアドレスは他人に見せない）。
    SQL Editor で設定する例:
 
 ```sql

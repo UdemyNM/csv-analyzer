@@ -110,7 +110,8 @@ export function createFakeSupabaseClient({
   const tables = {
     profiles: (users ?? []).map((u) => ({
       id: u.id,
-      display_name: u.displayName || u.email,
+      // migration と同じ: app_metadata.display_name。無ければ空（メールアドレスは入れない）
+      display_name: u.displayName || "",
       created_at: now(),
     })),
     datasets: [],

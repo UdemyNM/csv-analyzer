@@ -3,7 +3,7 @@
  * view は親 dataset が見える人だけが見られる。update / remove は作成者のみ。
  * 親 dataset の削除による cascade は LocalDatasetRepository.remove が行う。
  */
-import { NotFoundError, PermissionError } from "../types.js";
+import { NotFoundError, PermissionError } from "../../../src/repositories/types.js";
 import {
   DATASETS,
   VIEWS,

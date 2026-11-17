@@ -3,7 +3,8 @@
 //       src/repositories/types.js の AuthRepository
 // 契約:
 //   new SupabaseAuth({ client })   client は createClient() の戻り値（ここでは偽物）
-//   - User は { id, email, displayName }。displayName は user_metadata.display_name、無ければメールアドレス
+//   - User は { id, email, displayName }。displayName は app_metadata.display_name、無ければメールアドレス
+//     user_metadata は本人が updateUser で書き換えられるので、表示名に使わない（なりすまし防止。profiles トリガーと同じ）
 //   - ログイン失敗の理由は区別しない（アカウントの有無を漏らさない）
 import { describe, it, expect, vi } from "vitest";
 import { SupabaseAuth } from "../../../src/repositories/supabase/SupabaseAuth.js";
@@ -41,6 +42,33 @@ describe("SupabaseAuth", () => {
     const auth = new SupabaseAuth({ client });
     const user = await auth.signIn("x@example.com", "x-pass");
     expect(user.displayName).toBe("x@example.com");
+  });
+
+  it("本人が書き換えられる user_metadata.display_name は表示名に使わない", async () => {
+    const client = createFakeSupabaseClient({
+      users: [
+        {
+          id: "u-x",
+          email: "x@example.com",
+          password: "x-pass",
+          displayName: "管理者が付けた名前",
+          userMetadata: { display_name: "Alice" },
+        },
+        {
+          id: "u-y",
+          email: "y@example.com",
+          password: "y-pass",
+          userMetadata: { display_name: "Alice" },
+        },
+      ],
+    });
+    const auth = new SupabaseAuth({ client });
+    expect((await auth.signIn("x@example.com", "x-pass")).displayName).toBe(
+      "管理者が付けた名前",
+    );
+    expect((await auth.signIn("y@example.com", "y-pass")).displayName).toBe(
+      "y@example.com",
+    );
   });
 
   it("パスワード違いと未登録は、同じメッセージで拒否する", async () => {

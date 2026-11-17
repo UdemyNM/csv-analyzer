@@ -37,10 +37,12 @@ Section5_handson_1/
     ├── App.jsx        # ルートコンポーネント
     ├── components/    # 再利用するUIコンポーネント
     ├── hooks/         # カスタムフック
-    ├── repositories/  # 保存層（local/ = IndexedDB実装、types.js = 契約）
+    ├── repositories/  # 保存層（local/ = IndexedDB実装、supabase/ = Supabase実装、types.js = 契約）
     ├── workers/       # Web Worker（csvParse.worker.js など）
     └── utils/         # 共通関数（分析ロジックの純粋関数）
-tests/                 # テスト（src と同じ階層で *.test.jsx / *.test.js）
+tests/                 # テスト（src と同じ階層で *.test.jsx / *.test.js）。テスト用の偽物（LocalAuth など）も置く
+docs/                  # 要件・設計・計画・設定手順（06 = Supabase 認証の設定）
+.env.example           # 接続設定の見本（.env は Git 管理外）
 ```
 
 - 構成を変えるときは、このファイルも更新する

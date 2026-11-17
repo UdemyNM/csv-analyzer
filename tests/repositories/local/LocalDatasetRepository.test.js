@@ -2,7 +2,7 @@
 // 備考: fake-indexeddb は File/Blob を構造化複製すると普通のオブジェクトにしてしまうため、
 //       実装は保存前に ArrayBuffer へ変換する必要がある（契約テストの downloadCsv で検出される）
 import { describe, it, expect } from "vitest";
-import { LocalAuth } from "../../../src/repositories/local/LocalAuth.js";
+import { LocalAuth } from "./LocalAuth.js";
 import { LocalDatasetRepository } from "../../../src/repositories/local/LocalDatasetRepository.js";
 import { describeDatasetRepositoryContract } from "../contract/datasetRepository.contract.js";
 import {
@@ -17,7 +17,7 @@ import { createLocalEnv, uniqueDbName } from "./createLocalEnv.js";
 
 describeDatasetRepositoryContract("LocalDatasetRepository", createLocalEnv);
 
-describe("LocalDatasetRepository 固有（IndexedDB 永続化・擬似ユーザー連動）", () => {
+describe("LocalDatasetRepository 固有（IndexedDB 永続化・ログイン中のユーザーに連動）", () => {
   it("同じ dbName で作り直した別インスタンスから、保存済みの dataset と原本が見える", async () => {
     const dbName = uniqueDbName();
     const first = await createLocalEnv({ dbName });
@@ -63,11 +63,11 @@ describe("LocalDatasetRepository 固有（IndexedDB 永続化・擬似ユーザ�
     expect((await first.datasets.get(created.id)).visibility).toBe("private");
   });
 
-  it("擬似ユーザー切替（switchUser）に追従して、作成者と見える範囲が変わる", async () => {
+  it("ログインし直すと、作成者と見える範囲が変わる", async () => {
     const { auth, datasets } = await createLocalEnv();
-    await auth.switchUser("u-alice");
+    await auth.signIn("alice@example.com", "alice-pass");
     await datasets.create(sampleCreateInput({ name: "a-private" }));
-    await auth.switchUser("u-bob");
+    await auth.signIn("bob@example.com", "bob-pass");
     const own = await datasets.create(sampleCreateInput({ name: "b-private" }));
     expect(own.ownerId).toBe("u-bob");
     expect((await datasets.list()).map((d) => d.name)).toEqual(["b-private"]);
@@ -75,7 +75,7 @@ describe("LocalDatasetRepository 固有（IndexedDB 永続化・擬似ユーザ�
 
   it("ログアウトした状態では private を取得できない", async () => {
     const { auth, datasets } = await createLocalEnv();
-    await auth.switchUser("u-alice");
+    await auth.signIn("alice@example.com", "alice-pass");
     const d = await datasets.create(sampleCreateInput());
     await auth.signOut();
     await expect(datasets.get(d.id)).rejects.toThrow();

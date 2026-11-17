@@ -55,6 +55,29 @@ describe("parseCsv", () => {
     });
   });
 
+  describe("特別な名前の列（セキュリティ: 列名は利用者が自由に決められる）", () => {
+    it("列名 __proto__ の値も、ほかの列と同じく行に入る", () => {
+      const { headers, rows } = parseCsv("__proto__,name\n100,alice\n");
+      expect(headers).toEqual(["__proto__", "name"]);
+      expect(Object.hasOwn(rows[0], "__proto__")).toBe(true);
+      expect(rows[0]["__proto__"]).toBe("100");
+      expect(rows[0].name).toBe("alice");
+    });
+
+    it("列名 __proto__ があっても、Object.prototype は汚染されない", () => {
+      parseCsv("__proto__,polluted\n{},yes\n");
+      expect({}.polluted).toBeUndefined();
+    });
+
+    it("toString・constructor などの名前の列は、継承した値と混ざらない", () => {
+      const { rows } = parseCsv("toString,constructor,id\n,x,1\n");
+      expect(rows[0].toString).toBe("");
+      expect(rows[0].constructor).toBe("x");
+      // 存在しない列名を読むと、継承したメソッドではなく undefined になる
+      expect(rows[0].hasOwnProperty).toBeUndefined();
+    });
+  });
+
   describe("クォート・改行・カンマ", () => {
     it("引用符の中のカンマはセルの区切りにならない", () => {
       const { rows } = parseCsv('a,b\n"x,y",z\n');

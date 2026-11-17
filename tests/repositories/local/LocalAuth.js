@@ -1,5 +1,6 @@
 /**
- * 擬似ユーザー切替つきの AuthRepository（Local 実装）。
+ * テスト用の AuthRepository（メモリ上のユーザー一覧で signIn する）。テストファイルではない。
+ * 本番は src/repositories/supabase/SupabaseAuth.js（ユーザーは管理者が Supabase で作る）。
  * 状態はインスタンスごとに持つ。パスワードは外へ出さない。
  */
 
@@ -27,7 +28,10 @@ export class LocalAuth {
     if (!user) {
       throw new Error("メールアドレスまたはパスワードが違います");
     }
-    return this.#setCurrent(user);
+    this.#current = user;
+    const publicUser = toPublicUser(user);
+    this.#notify(publicUser);
+    return publicUser;
   }
 
   async signOut() {
@@ -45,27 +49,6 @@ export class LocalAuth {
     return () => {
       this.#listeners.delete(cb);
     };
-  }
-
-  /** Local 固有: 切替用のユーザー一覧（パスワードなし）。 */
-  async listUsers() {
-    return this.#users.map(toPublicUser);
-  }
-
-  /** Local 固有: パスワード無しでそのユーザーへ切り替える。 */
-  async switchUser(userId) {
-    const user = this.#users.find((u) => u.id === userId);
-    if (!user) {
-      throw new Error(`ユーザーが見つかりません: ${userId}`);
-    }
-    return this.#setCurrent(user);
-  }
-
-  #setCurrent(user) {
-    this.#current = user;
-    const publicUser = toPublicUser(user);
-    this.#notify(publicUser);
-    return publicUser;
   }
 
   #notify(user) {

@@ -2,8 +2,8 @@
 // 仕様: docs/05 2 章（画面とパス）、docs/03 1・4 章、docs/04 Phase 4・5b、FR-01・02・10・13
 // 契約: <App auth={AuthRepository} datasets={DatasetRepository} views={ViewRepository} createWorker?={...} />
 //   - 未ログインは、どのパスでも /login（ログイン画面）へ。ログイン成功で / へ
-//   - / は DropZone＋自分と全員公開の一覧。ヘッダー（AppHeader）にログアウトと擬似ユーザー切替（UserSwitcher）
-//   - 作成者名は auth.listUsers()（Local 実装）から引く
+//   - / は DropZone＋自分と全員公開の一覧。ヘッダー（AppHeader）にログアウト。擬似ユーザー切替は無い（ユーザーは管理者が Supabase で作る）
+//   - 作成者名は、自分のものはログイン中のユーザーの表示名。他人のものは当面「不明なユーザー」（profiles テーブルは共有の段階で作る）
 //   - /upload のルートは無い（ヘッダーにもリンクが無い）
 //   - /datasets/:id は src/components/datasets/DatasetDetailPage.jsx（default export）を React.lazy で読む。
 //     別トラックが作るファイルなので、このテストでは vi.mock で代替する（スタブは id と location.state.justUploaded を表示）
@@ -154,7 +154,7 @@ describe("App: 一覧＋ドロップ枠（/）", () => {
       await screen.findByRole("link", { name: "bob-shared.csv" })
     ).closest("li");
     expect(within(item).getByText("公開")).toBeInTheDocument();
-    expect(within(item).getByText(/Bob/)).toBeInTheDocument();
+    expect(within(item).getByText(/不明なユーザー/)).toBeInTheDocument();
     const own = screen
       .getByRole("link", { name: "alice-private.csv" })
       .closest("li");
@@ -170,24 +170,11 @@ describe("App: 一覧＋ドロップ枠（/）", () => {
     expect(linkNames()).toContain("データ一覧");
   });
 
-  it("擬似ユーザー切替で別のユーザーを選ぶと、一覧がそのユーザーの見え方に変わる", async () => {
-    const user = userEvent.setup();
+  it("ヘッダーに擬似ユーザー切替が無い", async () => {
     await setup({ signedInAs: "alice" });
     await screen.findByRole("link", { name: "alice-private.csv" });
-    const select = await screen.findByRole("combobox", { name: /ユーザー/ });
-    await user.selectOptions(select, "Bob");
-    expect(
-      await screen.findByRole("link", { name: "bob-private.csv" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "bob-shared.csv" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "alice-shared.csv" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "alice-private.csv" }),
-    ).toBeNull();
+    expect(screen.queryByRole("combobox", { name: /ユーザー/ })).toBeNull();
+    expect(screen.queryByText("ユーザー切替")).toBeNull();
   });
 
   it("一覧の取得に失敗したら、alert と「再試行」を出し、再試行で一覧が出る", async () => {

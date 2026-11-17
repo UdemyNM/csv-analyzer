@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useAuth } from "../../src/hooks/useAuth.js";
-import { LocalAuth } from "../../src/repositories/local/LocalAuth.js";
+import { LocalAuth } from "../repositories/local/LocalAuth.js";
 import { USERS } from "../repositories/contract/fixtures.js";
 
 const ALICE = USERS[0];
@@ -71,13 +71,13 @@ describe("useAuth", () => {
     expect(result.current.user).toBeNull();
   });
 
-  it("auth 側の変化（ユーザー切替）にも追従する", async () => {
+  it("auth 側の変化（別ユーザーでのログイン）にも追従する", async () => {
     const auth = new LocalAuth({ users: USERS });
     await auth.signIn(ALICE.email, ALICE.password);
     const { result } = renderHook(() => useAuth(auth));
     await waitFor(() => expect(result.current.user?.id).toBe("u-alice"));
     await act(async () => {
-      await auth.switchUser("u-bob");
+      await auth.signIn("bob@example.com", "bob-pass");
     });
     expect(result.current.user.id).toBe("u-bob");
   });

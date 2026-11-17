@@ -20,6 +20,7 @@
         ▲ Vite 開発サーバー（静的配信のみ）
 ```
 - 複数ユーザー共有は、擬似ユーザー切替で権限ロジックを確認（実際の共有は第2段階）
+- （Phase 8a で変更）擬似ユーザー切替は削除した。認証は Supabase Auth（ユーザーは管理者が発行）。データ・ファイルは Phase 8b まで IndexedDB のまま。テスト用の LocalAuth は `tests/repositories/local/` に置く
 
 ### 2.2 第2段階（最終）: Supabase 無料プラン
 ```

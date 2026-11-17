@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { HashRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppHeader } from "./components/AppHeader.jsx";
 import { LoginForm } from "./components/auth/LoginForm.jsx";
-import { UserSwitcher } from "./components/auth/UserSwitcher.jsx";
 import { DatasetList } from "./components/datasets/DatasetList.jsx";
 import { DropZone } from "./components/datasets/DropZone.jsx";
 import { useAuth } from "./hooks/useAuth.js";
@@ -13,32 +12,20 @@ const DatasetDetailPage = lazy(
   () => import("./components/datasets/DatasetDetailPage.jsx"),
 );
 
-/** 作成者名の引き当て用。Local 認証の listUsers() から { [id]: 表示名 } を作る。 */
-function useOwnerNames(auth) {
-  const [names, setNames] = useState({});
-  useEffect(() => {
-    if (typeof auth.listUsers !== "function") return undefined;
-    let active = true;
-    auth.listUsers().then(
-      (users) => {
-        if (active)
-          setNames(Object.fromEntries(users.map((u) => [u.id, u.displayName])));
-      },
-      (e) => console.error(e),
-    );
-    return () => {
-      active = false;
-    };
-  }, [auth]);
-  return names;
+/**
+ * 作成者名の引き当て用 { [id]: 表示名 }。当面はログイン中のユーザーだけ（他人は「不明なユーザー」と表示される）。
+ * 他人の表示名は、共有の段階で profiles テーブルから引く。
+ */
+function useOwnerNames(user) {
+  const id = user?.id;
+  const displayName = user?.displayName;
+  return useMemo(() => (id ? { [id]: displayName } : {}), [id, displayName]);
 }
 
-function AppLayout({ auth, user, onSignOut }) {
+function AppLayout({ user, onSignOut }) {
   return (
     <>
-      <AppHeader user={user} onSignOut={onSignOut}>
-        <UserSwitcher auth={auth} />
-      </AppHeader>
+      <AppHeader user={user} onSignOut={onSignOut} />
       <main className="page">
         <Outlet />
       </main>
@@ -85,7 +72,7 @@ function HomePage({ user, datasets, ownerNames, createWorker }) {
  */
 export default function App({ auth, datasets, views, createWorker }) {
   const { user, loading, signIn, signOut } = useAuth(auth);
-  const ownerNames = useOwnerNames(auth);
+  const ownerNames = useOwnerNames(user);
 
   if (loading) {
     return (
@@ -113,7 +100,7 @@ export default function App({ auth, datasets, views, createWorker }) {
         <Route
           element={
             user ? (
-              <AppLayout auth={auth} user={user} onSignOut={signOut} />
+              <AppLayout user={user} onSignOut={signOut} />
             ) : (
               <Navigate to="/login" replace />
             )

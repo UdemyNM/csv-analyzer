@@ -1,6 +1,6 @@
 // 対象: src/repositories/local/LocalViewRepository.js（IndexedDB 実装）
 import { describe, it, expect } from "vitest";
-import { LocalAuth } from "../../../src/repositories/local/LocalAuth.js";
+import { LocalAuth } from "./LocalAuth.js";
 import { LocalViewRepository } from "../../../src/repositories/local/LocalViewRepository.js";
 import { describeViewRepositoryContract } from "../contract/viewRepository.contract.js";
 import { USERS, VIEW_CONFIG, sampleCreateInput } from "../contract/fixtures.js";
@@ -31,9 +31,9 @@ describe("LocalViewRepository 固有（IndexedDB 永続化・擬似ユーザー�
     expect(list[0].config).toEqual(VIEW_CONFIG);
   });
 
-  it("擬似ユーザー切替（switchUser）に追従して、作成者と権限が変わる", async () => {
+  it("ログインし直すと、作成者と権限が変わる", async () => {
     const { auth, datasets, views } = await createLocalEnv();
-    await auth.switchUser("u-alice");
+    await auth.signIn("alice@example.com", "alice-pass");
     const ds = await datasets.create(
       sampleCreateInput({ visibility: "shared" }),
     );
@@ -42,7 +42,7 @@ describe("LocalViewRepository 固有（IndexedDB 永続化・擬似ユーザー�
       name: "a",
       config: {},
     });
-    await auth.switchUser("u-bob");
+    await auth.signIn("bob@example.com", "bob-pass");
     const bobView = await views.create({
       datasetId: ds.id,
       name: "b",
@@ -50,19 +50,19 @@ describe("LocalViewRepository 固有（IndexedDB 永続化・擬似ユーザー�
     });
     expect(bobView.ownerId).toBe("u-bob");
     await expect(views.update(aliceView.id, { name: "x" })).rejects.toThrow();
-    await auth.switchUser("u-alice");
+    await auth.signIn("alice@example.com", "alice-pass");
     await expect(views.remove(bobView.id)).rejects.toThrow();
   });
 
   it("別の dbName の view は見えない（DB が分離される）", async () => {
     const a = await createLocalEnv({ dbName: uniqueDbName() });
     const b = await createLocalEnv({ dbName: uniqueDbName() });
-    await a.auth.switchUser("u-alice");
+    await a.auth.signIn("alice@example.com", "alice-pass");
     const ds = await a.datasets.create(
       sampleCreateInput({ visibility: "shared" }),
     );
     await a.views.create({ datasetId: ds.id, name: "only-in-a", config: {} });
-    await b.auth.switchUser("u-alice");
+    await b.auth.signIn("alice@example.com", "alice-pass");
     expect(await b.views.listByDataset(ds.id)).toEqual([]);
   });
 });

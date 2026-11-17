@@ -101,23 +101,12 @@
   gap: 8px 12px;
 }
 
-.filter-bar__sort {
+.filter-bar__hint {
+  margin: 0;
+}
+
+.filter-bar__clear {
   margin-left: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-bar__sort-label {
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.filter-bar__form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .chips {
@@ -427,11 +416,381 @@
 
 @media (max-width: 600px) {
   .dataset-header__owner-actions,
-  .filter-bar__sort {
+  .filter-bar__clear {
     margin-left: 0;
   }
 
   .dataset-header__extra {
     justify-content: flex-start;
+  }
+}
+
+/* ---- 列見出しのメニュー（設計書 6.1） ---- */
+.column-menu {
+  display: inline-flex;
+}
+
+.column-menu__trigger {
+  min-width: var(--touch-size);
+  min-height: var(--touch-size);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.column-menu__trigger:hover,
+.column-menu__trigger[aria-expanded="true"] {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+}
+
+/* 条件のある列: 色に加えて、アイコンも ⧩ に変わる */
+.column-menu__trigger[data-active="true"] {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.column-menu__panel {
+  position: fixed;
+  z-index: 20;
+  width: min(280px, calc(100vw - 16px));
+  max-height: 560px; /* 画面に収める高さは、開くときに style で上書きする */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 24px rgb(27 33 48 / 0.16);
+  font-weight: 400;
+  text-align: left;
+}
+
+.column-menu__title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.column-menu__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.column-menu__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 8px 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.column-menu__modes legend {
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.column-menu__values,
+.column-menu__free {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.column-menu__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.column-menu__list .check {
+  padding: 0 8px;
+}
+
+.column-menu__list .muted {
+  margin-left: auto;
+}
+
+.column-menu__more,
+.column-menu__error {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.column-menu__error {
+  color: var(--color-danger);
+}
+
+.column-menu__hide {
+  border-top-color: var(--color-border);
+}
+
+/* ---- データ表の見出し（列名・並べ替えの目印・メニュー）と行の非表示ボタン ---- */
+.th-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.th-menu__sort {
+  color: var(--color-accent);
+  font-size: 0.75rem;
+}
+
+.data-table__row-action {
+  width: var(--touch-size);
+  padding: 0 !important;
+  text-align: center;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-size);
+  min-height: var(--touch-size);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ---- ドラッグ＆ドロップの枠と列名チップ（設計書 7.1） ---- */
+.field-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px dashed transparent;
+  border-radius: 999px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.field-chip:hover,
+.field-chip:focus-visible {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+}
+
+.field-chip[data-dragging="true"],
+.slot-chip[data-dragging="true"] {
+  opacity: 0.6;
+  cursor: grabbing;
+}
+
+.field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field-list .field-chip {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.field-slots {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.field-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+/* ドロップ先の上: 色に加えて線を太くし、「ここに置く」と文字でも出す */
+.field-slot[data-drop-target="true"] {
+  border: 2px solid var(--color-accent);
+  background: #eef2fd;
+}
+
+/* チップは列名の部分（取っ手）でドラッグする */
+.slot-chip__handle {
+  cursor: grab;
+  touch-action: none;
+  border-radius: 4px;
+}
+
+.slot-chip__handle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.slot-chip[data-drop-target="true"] {
+  border-color: var(--color-accent);
+  box-shadow: -3px 0 0 var(--color-accent);
+}
+
+.field-slot__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.field-slot__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.field-slot__empty,
+.field-slot__hint {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.field-slot__hint {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.add-field {
+  position: relative;
+}
+
+.add-field__list {
+  position: absolute;
+  right: 0;
+  z-index: 15;
+  min-width: 180px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  box-shadow: 0 8px 24px rgb(27 33 48 / 0.16);
+}
+
+.add-field__option {
+  width: 100%;
+  min-height: var(--touch-size);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.add-field__option:hover,
+.add-field__option:focus-visible {
+  background: var(--color-bg);
+}
+
+/* ---- グラフの種類ボタンと、値のチップの集計方法 ---- */
+.chart-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-types__button[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.chart-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input--compact {
+  min-height: 32px;
+  padding: 0 4px;
+  font-size: 0.875rem;
+}
+
+.pivot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---- 配置: 左にデータ表、右上にグラフ、右下に集計（設計書 5.1） ---- */
+/* 分析画面だけ横幅の上限を広げる */
+.page:has(> .detail) {
+  max-width: 1600px;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.analysis-grid > * {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .analysis-grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-areas:
+      "table chart"
+      "table pivot";
+  }
+
+  .analysis-grid__table {
+    grid-area: table;
+  }
+
+  .analysis-grid__chart {
+    grid-area: chart;
+  }
+
+  .analysis-grid__pivot {
+    grid-area: pivot;
+  }
+
+  /* データ表は箱の中で縦にスクロールし、見出しを固定する */
+  .analysis-grid__table .table-scroll {
+    max-height: calc(100vh - 200px);
+    overflow: auto;
+  }
+
+  .analysis-grid__table .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-surface);
   }
 }

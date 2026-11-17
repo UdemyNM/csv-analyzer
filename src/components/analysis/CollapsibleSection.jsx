@@ -1,16 +1,22 @@
 import { useId, useState } from "react";
 
 /**
- * 見出し右端の開閉ボタンで表示/非表示を切り替えるセクション（初期は開いている）。
+ * 見出し右端の開閉ボタンで表示/非表示を切り替えるセクション（初期は開いている。defaultOpen={false} で閉じた状態から始める）。
  * details/summary で作る（docs/05 3 章）。閉じても中身は DOM に残り、ブラウザが非表示にする
  * （aria-controls の参照先が常に存在し、region の名前も解決される）。
  * 見出し行のどこを押しても開閉する（ボタンのクリックも行に伝わる）。
  * キーボードでは右端の開閉ボタンだけに止まる（summary は tabIndex=-1。Tab の止まる所が
  * 1 セクションに 2 つでき、同じ開閉を 2 回読み上げるのを防ぐ）。
  * 開閉の状態は state で持ち、summary の標準の切替は止める（aria-expanded と常に一致させるため）。
+ * lazy: 閉じているあいだは中身を描かない（重い計算をする中身のため。region 自体は常に残す）。
  */
-export function CollapsibleSection({ title, children }) {
-  const [open, setOpen] = useState(true);
+export function CollapsibleSection({
+  title,
+  defaultOpen = true,
+  lazy = false,
+  children,
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const baseId = useId();
   const headingId = `${baseId}-heading`;
   const regionId = `${baseId}-region`;
@@ -44,7 +50,7 @@ export function CollapsibleSection({ title, children }) {
         aria-labelledby={headingId}
         className="section__body"
       >
-        {children}
+        {lazy && !open ? null : children}
       </div>
     </details>
   );

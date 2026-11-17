@@ -8,6 +8,9 @@ import { sortRows } from "../src/utils/sortRows.js";
 import { aggregate } from "../src/utils/aggregate.js";
 import { statistics } from "../src/utils/statistics.js";
 import { correlation } from "../src/utils/correlation.js";
+import { pivot } from "../src/utils/pivot.js";
+import { countValues } from "../src/utils/valueSelection.js";
+import { excludeHiddenRows } from "../src/utils/hiddenRows.js";
 
 const ROW_COUNT = 50_000;
 const LIMIT_MS = 500; // 各処理の上限（目安は 40ms 級）
@@ -160,6 +163,29 @@ describe(`分析ロジックの性能（${ROW_COUNT.toLocaleString()} 行）`, (
     expect(ms).toBeLessThan(LIMIT_MS);
   });
 
+  it(`pivot: 行 2・列 1〈日付〉・値 2 で ${LIMIT_MS}ms 以内（列は 50 で切る）`, () => {
+    const spec = {
+      rows: ["店舗", "商品"],
+      columns: ["日付"],
+      values: [
+        { column: "売上", fn: "sum" },
+        { column: "数量", fn: "avg" },
+      ],
+    };
+    const { ms, result } = measure(() =>
+      pivot(rows, spec, (name) =>
+        name === "日付"
+          ? "date"
+          : ["数量", "単価", "売上"].includes(name)
+            ? "number"
+            : "string",
+      ),
+    );
+    expect(result.columnKeys).toHaveLength(50);
+    expect(result.records).toHaveLength(STORES.length * PRODUCTS.length);
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
   it("一連の処理（フィルタ → 並べ替え → 集計 → 統計 → 相関）を通しても 2 秒以内", () => {
     const start = performance.now();
     const filtered = filterRows(rows, [
@@ -179,5 +205,54 @@ describe(`分析ロジックの性能（${ROW_COUNT.toLocaleString()} 行）`, (
       ["数量", "単価", "売上"].map((name) => sorted.map((r) => r[name])),
     );
     expect(performance.now() - start).toBeLessThan(2000);
+  });
+});
+
+// 分析画面の改修（docs/superpowers/specs/2026-11-16-analysis-page-redesign-design.md 3 章）:
+// 10MB・約 25 万行で、操作のたびに 1 秒以上固まらないこと。目安: 集計 0.1〜0.5 秒、値の候補 0.3 秒
+const BIG_ROW_COUNT = 250_000;
+const TYPES = {
+  日付: "date",
+  店舗: "string",
+  商品: "string",
+  数量: "number",
+  単価: "number",
+  売上: "number",
+};
+const typeOf = (name) => TYPES[name] ?? "string";
+
+describe(`分析画面の改修の性能（${BIG_ROW_COUNT.toLocaleString()} 行）`, () => {
+  let big;
+  beforeAll(() => {
+    big = buildRows(BIG_ROW_COUNT);
+  });
+
+  it("ピボット（行 1・列 1・値 1）が 1,000ms 以内（単独では約 0.1 秒。全テストを並べて実行すると数倍に揺れる）", () => {
+    const spec = {
+      rows: ["店舗"],
+      columns: ["商品"],
+      values: [{ column: "売上", fn: "sum" }],
+    };
+    const { ms, result } = measure(() => pivot(big, spec, typeOf));
+    expect(result.records).toHaveLength(STORES.length);
+    expect(result.columnKeys).toHaveLength(PRODUCTS.length);
+    expect(ms).toBeLessThan(1000);
+  });
+
+  it("列見出しのメニューの値の候補（日付列: 84 種類）を数えるのが 300ms 以内", () => {
+    const { ms, result } = measure(() => countValues(big, "日付"));
+    expect(result).toHaveLength(84);
+    expect(ms).toBeLessThan(300);
+  });
+
+  it("行の非表示（1,000 行）→ 値から選ぶ（notIn）の絞り込みが 300ms 以内", () => {
+    const hidden = Array.from({ length: 1000 }, (_, i) => i * 250);
+    const { ms, result } = measure(() =>
+      filterRows(excludeHiddenRows(big, hidden), [
+        { column: "店舗", op: "notIn", values: ["渋谷店"] },
+      ]),
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(ms).toBeLessThan(300);
   });
 });

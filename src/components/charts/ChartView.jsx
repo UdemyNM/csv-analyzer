@@ -54,6 +54,15 @@ export const TYPE_LABELS = {
   scatter: "散布図",
 };
 
+/** 系列名を「・」でつなぐ。3 つを超えたら「ほか N」 */
+const listNames = (series) =>
+  series.length > 3
+    ? `${series
+        .slice(0, 3)
+        .map((s) => s.name)
+        .join("・")} ほか ${series.length - 3}`
+    : series.map((s) => s.name).join("・");
+
 /** 文字列（CSV そのまま。1,234 も可）でも数値（集計結果）でも、数値として読む。読めなければ null */
 const toNumber = (value) => {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -89,10 +98,14 @@ function sampleEvenly(rows, max) {
  * グラフ本体（棒・折れ線・円・散布図）。
  * 2,000 点を超えるときは等間隔に間引き、グラフの下に注記する。
  * role="img" と aria-label（種類・X・Y の列名）を付ける。
+ * series を渡すと複数の系列を描く（ピボットグラフ。設計書 8.2）: rows の各行の series[i].key の値を系列 i とする。
+ * そのとき y は使わず、aria-label には X 軸の名前（xName）と系列名を並べる。円は最初の系列だけを描く。
  *
- * @param {{type: 'bar'|'line'|'pie'|'scatter', rows: object[], x: string, y: string}} props
+ * @param {{type: 'bar'|'line'|'pie'|'scatter', rows: object[], x: string, y?: string,
+ *   xName?: string, series?: {key: string, name: string}[]}} props
  */
-function ChartViewBase({ type, rows, x, y }) {
+function ChartViewBase({ type, rows, x, y, xName, series }) {
+  const lines = useMemo(() => series ?? [{ key: "y", name: y }], [series, y]);
   const sampled = rows.length > MAX_POINTS;
   const data = useMemo(() => {
     const picked = sampleEvenly(rows, MAX_POINTS);
@@ -101,18 +114,27 @@ function ChartViewBase({ type, rows, x, y }) {
         .map((row) => ({ x: toNumber(row[x]), y: toNumber(row[y]) }))
         .filter((p) => p.x !== null && p.y !== null);
     }
-    const points = picked.map((row) => ({
-      x: String(row[x] ?? ""),
-      y: toNumber(row[y]),
-    }));
-    // 円は、正の値だけが割合として意味を持つ
+    const points = picked.map((row) => {
+      const point = { x: String(row[x] ?? "") };
+      if (series) {
+        for (const s of series) point[s.key] = toNumber(row[s.key]);
+      } else {
+        point.y = toNumber(row[y]);
+      }
+      return point;
+    });
+    // 円は、正の値だけが割合として意味を持つ（最初の系列だけ）
+    const first = lines[0].key;
     return type === "pie"
-      ? points.filter((p) => p.y !== null && p.y > 0)
+      ? points.filter((p) => p[first] !== null && p[first] > 0)
       : points;
-  }, [rows, type, x, y]);
+  }, [rows, type, x, y, series, lines]);
 
   const color = COLORS[0];
-  const label = `${TYPE_LABELS[type] ?? type}: X軸 ${x}、Y軸 ${y}`;
+  const label = series
+    ? `${TYPE_LABELS[type] ?? type}: X軸 ${xName ?? x}、系列 ${listNames(series)}`
+    : `${TYPE_LABELS[type] ?? type}: X軸 ${x}、Y軸 ${y}`;
+  const legend = lines.length > 1 ? <Legend /> : null;
   // 点が多い棒・折れ線だけ、チャートの幅を追ってラベルの数を決める（それ以外は Recharts の自動のまま）
   const [width, setWidth] = useState(0);
   const thin =
@@ -136,7 +158,16 @@ function ChartViewBase({ type, rows, x, y }) {
         <XAxis dataKey="x" interval={xInterval} />
         <YAxis />
         <Tooltip />
-        <Bar dataKey="y" name={y} fill={color} isAnimationActive={false} />
+        {legend}
+        {lines.map((s, i) => (
+          <Bar
+            key={s.key}
+            dataKey={s.key}
+            name={s.name}
+            fill={COLORS[i % COLORS.length]}
+            isAnimationActive={false}
+          />
+        ))}
       </BarChart>
     );
   } else if (type === "line") {
@@ -146,13 +177,17 @@ function ChartViewBase({ type, rows, x, y }) {
         <XAxis dataKey="x" interval={xInterval} />
         <YAxis />
         <Tooltip />
-        <Line
-          dataKey="y"
-          name={y}
-          stroke={color}
-          dot={data.length > DOT_LIMIT ? false : true}
-          isAnimationActive={false}
-        />
+        {legend}
+        {lines.map((s, i) => (
+          <Line
+            key={s.key}
+            dataKey={s.key}
+            name={s.name}
+            stroke={COLORS[i % COLORS.length]}
+            dot={data.length > DOT_LIMIT ? false : true}
+            isAnimationActive={false}
+          />
+        ))}
       </LineChart>
     );
   } else if (type === "pie") {
@@ -162,7 +197,7 @@ function ChartViewBase({ type, rows, x, y }) {
         <Legend />
         <Pie
           data={data}
-          dataKey="y"
+          dataKey={lines[0].key}
           nameKey="x"
           isAnimationActive={false}
           // スマホ幅でも外側のラベルが切れないよう、半径を小さめにし、値は表と同じ書式（小数 4 桁まで）で出す

@@ -176,3 +176,54 @@ describe("ChartView: 2,000 点の間引きと注記", () => {
     expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(2.5);
   });
 });
+
+describe("ChartView: 複数の系列（ピボットグラフ。設計書 8.2）", () => {
+  // pivotSeries の形: { x: ラベル, s0: 値, s1: 値 }
+  const data = [
+    { x: "東京", s0: 100, s1: 10 },
+    { x: "大阪", s0: 200, s1: null },
+    { x: "名古屋", s0: 300, s1: 30 },
+  ];
+  const series = [
+    { key: "s0", name: "りんご" },
+    { key: "s1", name: "みかん" },
+  ];
+
+  it("系列 2 つの棒は、系列ごとに棒を描き、凡例に系列名を出す", () => {
+    const { container } = render(
+      <ChartView type="bar" rows={data} x="x" xName="店舗" series={series} />,
+    );
+    expect(container.querySelectorAll(".recharts-bar")).toHaveLength(2);
+    const legend = container.querySelector(".recharts-legend-wrapper");
+    expect(legend).toHaveTextContent("りんご");
+    expect(legend).toHaveTextContent("みかん");
+  });
+
+  it("折れ線も系列ごとに線を描く", () => {
+    const { container } = render(
+      <ChartView type="line" rows={data} x="x" xName="店舗" series={series} />,
+    );
+    expect(container.querySelectorAll(".recharts-line")).toHaveLength(2);
+  });
+
+  it("aria-label は X 軸の名前と系列名を並べる（3 つを超えたら「ほか N」）", () => {
+    const many = Array.from({ length: 5 }, (_, i) => ({
+      key: `s${i}`,
+      name: `系${i}`,
+    }));
+    render(
+      <ChartView type="bar" rows={data} x="x" xName="店舗" series={many} />,
+    );
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "aria-label",
+      "棒グラフ: X軸 店舗、系列 系0・系1・系2 ほか 2",
+    );
+  });
+
+  it("円は最初の系列だけを描く", () => {
+    const { container } = render(
+      <ChartView type="pie" rows={data} x="x" xName="店舗" series={series} />,
+    );
+    expect(container.querySelectorAll(".recharts-pie-sector")).toHaveLength(3);
+  });
+});

@@ -52,6 +52,7 @@
 | テスト | Vitest + React Testing Library | **導入前に要確認** |
 | CSVパース | PapaParse | 追加時に要確認 |
 | グラフ | Recharts | 追加時に要確認 |
+| ドラッグ＆ドロップ | @dnd-kit/react（0.5 系。マウス・タッチ・キーボード対応） | 2026-11-16 追加（ユーザー承認済み） |
 | 統計 | 自前の純粋関数（平均/中央値/標準偏差/相関）。必要なら simple-statistics | 追加時に要確認 |
 | ルーティング | React Router（GitHub Pagesでは `HashRouter` が有力。最新ドキュメントで確認） | 追加時に要確認 |
 | 認証/DB/Storage | Supabase（@supabase/supabase-js） | 第2段階。最新公式ドキュメントを確認してから実装 |
@@ -68,10 +69,15 @@ views      : id / dataset_id→datasets(on delete cascade) / owner_id
 `views.config` の例:
 ```json
 {
-  "filters": [{"column":"region","op":"eq","value":"東京"}],
+  "filters": [
+    {"column":"region","op":"in","values":["東京","大阪"]},
+    {"column":"sales","op":"gte","value":"1000"}
+  ],
   "sort": {"column":"sales","direction":"desc"},
-  "aggregation": {"groupBy":["region"],"metrics":[{"column":"sales","fn":"sum"}]},
-  "chart": {"type":"bar","x":"region","y":"sales_sum"}
+  "hiddenRows": [3, 17],
+  "hiddenColumns": ["memo"],
+  "pivot": {"rows":["region"],"columns":["product"],"values":[{"column":"sales","fn":"sum"}]},
+  "chart": {"type":"bar","scatter":{"x":"quantity","y":"sales"}}
 }
 ```
 

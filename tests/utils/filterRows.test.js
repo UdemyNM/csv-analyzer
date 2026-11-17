@@ -296,3 +296,38 @@ describe("filterRows", () => {
     });
   });
 });
+
+describe("filterRows: in / notIn（値から選ぶ）", () => {
+  const fv = (column, op, values) => [{ column, op, values }];
+
+  it("in: values に含まれる行だけ残す", () => {
+    expect(
+      stores(filterRows(sales, fv("店舗", "in", ["渋谷店", "池袋店"]))),
+    ).toEqual(["渋谷店", "渋谷店", "池袋店"]);
+  });
+
+  it('in: 空欄 "" を選べる', () => {
+    const rows = [...sales, { ...sales[0], 店舗: "" }];
+    expect(filterRows(rows, fv("店舗", "in", [""]))).toHaveLength(1);
+  });
+
+  it("notIn: values に含まれる行を除く", () => {
+    expect(stores(filterRows(sales, fv("店舗", "notIn", ["渋谷店"])))).toEqual(
+      ["新宿店", "池袋店"],
+    );
+  });
+
+  it("in: ほかの条件と AND になる", () => {
+    const filters = [
+      { column: "店舗", op: "in", values: ["渋谷店", "池袋店"] },
+      { column: "売上", op: "gte", value: "500" },
+    ];
+    expect(stores(filterRows(sales, filters))).toEqual(["渋谷店", "池袋店"]);
+  });
+
+  it("in: 存在しない列は InvalidFilterError", () => {
+    expect(() => filterRows(sales, fv("地域", "in", ["東"]))).toThrow(
+      InvalidFilterError,
+    );
+  });
+});

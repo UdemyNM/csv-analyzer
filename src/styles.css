@@ -137,13 +137,6 @@ a {
   gap: 8px 16px;
 }
 
-.user-switcher {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
-}
-
 /* ---- ボタン・入力（タッチ領域 44px 以上） ---- */
 .btn {
   display: inline-flex;

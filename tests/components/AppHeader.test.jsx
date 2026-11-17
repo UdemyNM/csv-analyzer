@@ -1,6 +1,6 @@
 // 対象: src/components/AppHeader.jsx（名前付き export { AppHeader }）
 // 仕様: docs/05 2・4 章「ヘッダー: ロゴ / データ一覧 / 利用者名 / ログアウト」「/upload のルートとヘッダーのリンクを削除」
-// 契約: <AppHeader user={{displayName,...}} onSignOut={() => void}>{右側に差し込む部品（擬似ユーザー切替）}</AppHeader>
+// 契約: <AppHeader user={{displayName,...}} onSignOut={() => void}>{右側に差し込む部品}</AppHeader>
 //   - role=banner（header 要素）。「データ一覧」リンク（/ へ）。利用者名。button「ログアウト」。children をそのまま描画する
 //   - アップロードへのリンクは持たない
 import { describe, it, expect, vi } from "vitest";
@@ -54,7 +54,7 @@ describe("AppHeader", () => {
     }
   });
 
-  it("children（擬似ユーザー切替など）を描画する", () => {
+  it("children（右側に差し込む部品）を描画する", () => {
     renderHeader({}, <div data-testid="slot">差し込み</div>);
     expect(
       within(screen.getByRole("banner")).getByTestId("slot"),

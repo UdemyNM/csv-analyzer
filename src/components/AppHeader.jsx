@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-/** ヘッダー: ロゴ / データ一覧 / （children: 擬似ユーザー切替など）/ 利用者名 / ログアウト。 */
+/** ヘッダー: ロゴ / データ一覧 / （children: 右側に差し込む部品）/ 利用者名 / ログアウト。 */
 export function AppHeader({ user, onSignOut, children }) {
   return (
     <header className="app-header">

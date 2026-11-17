@@ -75,6 +75,9 @@
 - 不具合は `bug_fixer`
 
 ### Phase 8: Supabase移行
+- 8a（済）: 認証だけを Supabase Auth に置き換え、擬似ユーザー（デモユーザーのパスワード・ユーザー切替）を削除した。`src/repositories/supabase/`（`SupabaseAuth` / `createSupabaseClient`）。設定手順は `docs/06-supabase-auth-setup.md`
+- 8b（未着手）: datasets / views / profiles テーブル・RLS・Storage を作り、データ・ファイルを Supabase へ移す（以下の手順）
+
 1. 最新の公式ドキュメントで確認: Auth、RLS、Storage のポリシー、**無料プランの上限と停止ポリシー**
 2. `supabase/migrations/` にテーブルとRLSを定義
 3. **RLSのテスト**（他人の private が見えない／更新できない）を先に書く

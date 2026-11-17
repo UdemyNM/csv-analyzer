@@ -6,6 +6,7 @@
  *   chart: { type: "bar"|"line"|"pie"|"scatter", scatter: { x, y } | null } | null
  * 古い形: { filters, sort, aggregation: { groupBy, metrics } | null, chart: { type, x, y } | null }
  */
+import { FN_LABELS } from "../../utils/pivot.js";
 
 export const EMPTY_CONFIG = Object.freeze({
   filters: [],
@@ -64,6 +65,103 @@ export function migrateConfig(raw) {
   };
 }
 
+export const BROKEN_NOTE =
+  "ビューの設定に読み込めない部分があったため、その部分を無効にしました";
+
+// filterRows が受け付ける条件
+const COMPARE_OPS = ["eq", "ne", "contains", "gt", "gte", "lt", "lte"];
+const SET_OPS = ["in", "notIn"];
+const CHART_TYPES = ["bar", "line", "pie", "scatter"];
+
+const isObject = (v) =>
+  v !== null && typeof v === "object" && !Array.isArray(v);
+const isString = (v) => typeof v === "string";
+
+const isValidFilter = (f) =>
+  isObject(f) &&
+  isString(f.column) &&
+  (SET_OPS.includes(f.op)
+    ? Array.isArray(f.values) && f.values.every(isString)
+    : COMPARE_OPS.includes(f.op) && isString(f.value));
+
+const isValidSort = (s) =>
+  isObject(s) &&
+  isString(s.column) &&
+  (s.direction === "asc" || s.direction === "desc");
+
+// count 以外は集計する列が必要
+const isValidMetric = (m) =>
+  isObject(m) &&
+  Object.hasOwn(FN_LABELS, m.fn) &&
+  (m.column === undefined ? m.fn === "count" : isString(m.column));
+
+const isOptionalString = (v) => v === undefined || isString(v);
+
+/**
+ * 保存された config の「形」を確かめる（共有されたビューは他人が保存した値。壊れていても画面を落とさない）。
+ * 形の正しくない部分だけを捨て（配列は要素ごと）、捨てたら broken: true。列名の有無は見ない（sanitizeConfig が見る）。
+ * 項目が無い（undefined）ことは壊れているとみなさない（古い形・足りない項目は migrateConfig が補う）。
+ * @returns {{ config: object, broken: boolean }}
+ */
+function normalizeShape(raw) {
+  if (!isObject(raw)) return { config: {}, broken: true };
+  let broken = false;
+  const fail = (fallback) => {
+    broken = true;
+    return fallback;
+  };
+  // 配列なら test を満たす要素だけ残す。配列でなければ []
+  const list = (value, test) => {
+    if (!Array.isArray(value)) return fail([]);
+    const kept = value.filter(test);
+    if (kept.length !== value.length) broken = true;
+    return kept;
+  };
+  // 項目が無い・null はそのまま。あれば check で確かめる
+  const field = (value, check) => (value == null ? value : check(value));
+
+  const config = {
+    filters: field(raw.filters, (v) => list(v, isValidFilter)),
+    sort: field(raw.sort, (v) => (isValidSort(v) ? v : fail(null))),
+    hiddenRows: field(raw.hiddenRows, (v) => (Array.isArray(v) ? v : fail([]))),
+    hiddenColumns: field(raw.hiddenColumns, (v) => list(v, isString)),
+    pivot: field(raw.pivot, (v) =>
+      isObject(v)
+        ? {
+            rows: list(v.rows, isString),
+            columns: list(v.columns, isString),
+            values: list(v.values, isValidMetric),
+          }
+        : fail(null),
+    ),
+    aggregation: field(raw.aggregation, (v) =>
+      isObject(v)
+        ? {
+            groupBy: list(v.groupBy, isString),
+            metrics: list(v.metrics, isValidMetric),
+          }
+        : fail(null),
+    ),
+    chart: field(raw.chart, (v) => {
+      if (!isObject(v) || !CHART_TYPES.includes(v.type)) return fail(null);
+      if (Object.hasOwn(v, "scatter")) {
+        const { scatter } = v;
+        const ok =
+          scatter === null ||
+          (isObject(scatter) && isString(scatter.x) && isString(scatter.y));
+        return { type: v.type, scatter: ok ? scatter : fail(null) };
+      }
+      // 古い形 { type, x, y }
+      return {
+        type: v.type,
+        x: isOptionalString(v.x) ? v.x : fail(undefined),
+        y: isOptionalString(v.y) ? v.y : fail(undefined),
+      };
+    }),
+  };
+  return { config, broken };
+}
+
 const valueColumns = (pivot) =>
   (pivot?.values ?? [])
     .filter((v) => v.column !== undefined)
@@ -96,7 +194,9 @@ export function findMissingColumns(config, columnNames) {
  *   disabled は無効にした設定の説明、notes は形の変換の知らせ（どちらも画面の警告に使う）
  */
 export function sanitizeConfig(raw, columnNames, rowCount) {
-  const { config: migrated, notes } = migrateConfig(raw);
+  const { config: shaped, broken } = normalizeShape(raw);
+  const { config: migrated, notes } = migrateConfig(shaped);
+  if (broken) notes.unshift(BROKEN_NOTE);
   const known = new Set(columnNames);
   const disabled = [];
   const keep = (label) => (name) => {

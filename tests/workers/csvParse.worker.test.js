@@ -162,6 +162,20 @@ describe("handleParseRequest", () => {
   });
 });
 
+describe("特別な名前の列（Worker から画面へ渡したあと）", () => {
+  it("列名 __proto__ の値が、構造化複製（postMessage）のあとも読める", () => {
+    const res = handleParseRequest({
+      id: 1,
+      buffer: bufferOf("__proto__,name\n100,alice\n"),
+    });
+    const received = structuredClone(res); // postMessage と同じ複製
+    const row = received.result.rows[0];
+    expect(Object.hasOwn(row, "__proto__")).toBe(true);
+    expect(row["__proto__"]).toBe("100");
+    expect(row.name).toBe("alice");
+  });
+});
+
 describe("モジュールの読み込み", () => {
   it("Worker 以外（jsdom）で import しても例外を出さず、handleParseRequest を export する", () => {
     expect(typeof handleParseRequest).toBe("function");

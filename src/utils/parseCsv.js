@@ -49,7 +49,9 @@ export function parseCsv(text) {
   const rows = new Array(data.length - 1);
   for (let i = 1; i < data.length; i++) {
     const cells = data[i];
-    const row = {};
+    // 列名は利用者が自由に決められるので、プロトタイプを持たない行にする。
+    // 普通の {} だと列名 __proto__ の値が入らず、hasOwnProperty などの継承した値も混ざる（MDN: null-prototype objects）
+    const row = Object.create(null);
     for (let c = 0; c < headers.length; c++) row[headers[c]] = cells[c] ?? "";
     rows[i - 1] = row;
   }

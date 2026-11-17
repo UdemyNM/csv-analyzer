@@ -3,7 +3,7 @@
  * 現在のユーザーは auth.getCurrentUser() から取る。
  * 注意: File / Blob はそのまま保存すると構造化複製で壊れる環境があるため、ArrayBuffer にして保存する。
  */
-import { NotFoundError, PermissionError } from "../../../src/repositories/types.js";
+import { NotFoundError, PermissionError } from "../types.js";
 import {
   DATASETS,
   FILES,

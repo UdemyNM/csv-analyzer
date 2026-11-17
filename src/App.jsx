@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { HashRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppHeader } from "./components/AppHeader.jsx";
 import { LoginForm } from "./components/auth/LoginForm.jsx";
@@ -13,13 +13,35 @@ const DatasetDetailPage = lazy(
 );
 
 /**
- * 作成者名の引き当て用 { [id]: 表示名 }。当面はログイン中のユーザーだけ（他人は「不明なユーザー」と表示される）。
- * 他人の表示名は、共有の段階で profiles テーブルから引く。
+ * 作成者名の引き当て用 { [id]: 表示名 }。
+ * 他人の表示名は profiles.listDisplayNames() から引く（ログインし直すたびに取り直す）。
+ * 取れない・載っていない人は、画面側で「不明なユーザー」と表示される。自分はログイン中のユーザーの表示名を使う。
  */
-function useOwnerNames(user) {
+function useOwnerNames(user, profiles) {
   const id = user?.id;
   const displayName = user?.displayName;
-  return useMemo(() => (id ? { [id]: displayName } : {}), [id, displayName]);
+  const [loaded, setLoaded] = useState({ userId: null, names: {} });
+
+  useEffect(() => {
+    if (!id || !profiles) return undefined;
+    let cancelled = false;
+    profiles
+      .listDisplayNames()
+      .catch(() => ({})) // 表示にだけ使うので、失敗しても一覧は出す
+      .then((names) => {
+        if (!cancelled) setLoaded({ userId: id, names });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, profiles]);
+
+  return useMemo(() => {
+    if (!id) return {};
+    // 前のユーザーで取った名前は使わない
+    const others = loaded.userId === id ? loaded.names : {};
+    return { ...others, [id]: displayName };
+  }, [id, displayName, loaded]);
 }
 
 function AppLayout({ user, onSignOut }) {
@@ -67,12 +89,12 @@ function HomePage({ user, datasets, ownerNames, createWorker }) {
 }
 
 /**
- * @param {{auth: object, datasets: object, views: object, createWorker?: () => Worker}} props
- *   各 Repository を受け取る（Local / Supabase を main.jsx で差し替える）
+ * @param {{auth: object, datasets: object, views: object, profiles?: {listDisplayNames: () => Promise<Record<string, string>>}, createWorker?: () => Worker}} props
+ *   各 Repository を受け取る（main.jsx で Supabase 実装を渡す。テストでは偽物を渡す）
  */
-export default function App({ auth, datasets, views, createWorker }) {
+export default function App({ auth, datasets, views, profiles, createWorker }) {
   const { user, loading, signIn, signOut } = useAuth(auth);
-  const ownerNames = useOwnerNames(user);
+  const ownerNames = useOwnerNames(user, profiles);
 
   if (loading) {
     return (

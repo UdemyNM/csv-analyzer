@@ -5,10 +5,10 @@
 //   new LocalDatasetRepository({ auth, dbName }) 現在のユーザーは auth.getCurrentUser() から取る
 //   new LocalViewRepository({ auth, dbName })    同じ dbName の IndexedDB から親 dataset を引いて可視性を判定する
 // 配置:
-//   LocalAuth はテスト用（tests/repositories/local/LocalAuth.js）。LocalDatasetRepository.js / LocalViewRepository.js は src/repositories/local/（名前付き export）
+//   LocalAuth はテスト用（tests/repositories/local/LocalAuth.js）。LocalDatasetRepository.js / LocalViewRepository.js もテスト用（同じフォルダ。名前付き export）
 import { LocalAuth } from "./LocalAuth.js";
-import { LocalDatasetRepository } from "../../../src/repositories/local/LocalDatasetRepository.js";
-import { LocalViewRepository } from "../../../src/repositories/local/LocalViewRepository.js";
+import { LocalDatasetRepository } from "./LocalDatasetRepository.js";
+import { LocalViewRepository } from "./LocalViewRepository.js";
 import { USERS } from "../contract/fixtures.js";
 
 let seq = 0;

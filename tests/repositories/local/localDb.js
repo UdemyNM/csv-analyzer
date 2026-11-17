@@ -4,7 +4,7 @@
  * - 書き込みの確定は transaction.oncomplete で待つ（request.onsuccess ではない）
  * - トランザクションの途中で IndexedDB 以外の非同期処理を待たない（待つと閉じる）
  */
-import { NotFoundError, PermissionError } from "../types.js";
+import { NotFoundError, PermissionError } from "../../../src/repositories/types.js";
 
 export const DATASETS = "datasets";
 export const FILES = "files"; // CSV 原本（ArrayBuffer）。一覧で巨大なバイト列を読まないよう dataset と分ける

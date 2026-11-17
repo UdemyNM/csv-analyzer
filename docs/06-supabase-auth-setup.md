@@ -27,14 +27,18 @@ curl -s -X POST "https://<project-ref>.supabase.co/auth/v1/signup" -H "apikey: <
 1. Authentication → Users →「Add user」→「Create new user」
 2. メールアドレスと初期パスワードを入れる。メール確認を使わないので「Auto Confirm User」にチェックする
 3. 初期パスワードは安全な方法で本人に渡す（チャットやメールに平文で残さない）
-4. 表示名（任意）: アプリは `user_metadata.display_name` を表示名に使う。無ければメールアドレスを表示する。
+4. 表示名（全員に付けることを推奨）: アプリは `app_metadata.display_name` を表示名に使う。
+   無い人は、本人のヘッダーにはメールアドレス、他の人の画面の作成者名には「不明なユーザー」と出る（メールアドレスは他人に見せない）。
    SQL Editor で設定する例:
 
 ```sql
 update auth.users
-set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || '{"display_name": "山田"}'::jsonb
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"display_name": "山田"}'::jsonb
 where email = 'yamada@example.com';
 ```
+
+- **`user_metadata`（`raw_user_meta_data`）には入れない。** 本人がアプリの外から書き換えられるため、他人の名前を名乗れてしまう（2026-11 のセキュリティレビューで修正）
+- 設定すると、作成者名（`profiles`）にはすぐ反映される。本人のヘッダーの表示名は、次にログインしたとき（またはセッションの自動更新後）に変わる
 
 - パスワードの再設定も管理者が行う（アプリに再設定画面は無い。docs/01 OQ-1）
 - 退職などで使わなくなったユーザーは、Authentication → Users から削除する
@@ -69,8 +73,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key>
 3. ログアウトすると /login に戻る。再読み込みしてもログイン状態が保たれる
 4. 手順 2 の確認（サインアップが拒否される）を済ませている
 
-## 現時点の制限（Phase 8b で解消）
+## 次の手順
 
-- データ・CSV 原本は、まだ各ブラウザの中（IndexedDB）にある。**他の人との共有はまだできない**
-- 他人が作ったデータの作成者名は「不明なユーザー」と表示する（profiles テーブルは 8b で作る）
-- 擬似ユーザー（alice など）で作ったデータは、各ブラウザの IndexedDB に残るが、誰からも見えない
+- データ・CSV 原本の共有（Phase 8b）の設定は `docs/07-supabase-sharing-setup.md`
+- 表示名（手順 3 の 4）を変えると、作成者名の表示（`profiles` テーブル）にも自動で反映される

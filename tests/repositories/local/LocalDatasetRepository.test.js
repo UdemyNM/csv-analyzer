@@ -1,9 +1,9 @@
-// 対象: src/repositories/local/LocalDatasetRepository.js（IndexedDB 実装）
+// 対象: tests/repositories/local/LocalDatasetRepository.js（IndexedDB 実装）
 // 備考: fake-indexeddb は File/Blob を構造化複製すると普通のオブジェクトにしてしまうため、
 //       実装は保存前に ArrayBuffer へ変換する必要がある（契約テストの downloadCsv で検出される）
 import { describe, it, expect } from "vitest";
 import { LocalAuth } from "./LocalAuth.js";
-import { LocalDatasetRepository } from "../../../src/repositories/local/LocalDatasetRepository.js";
+import { LocalDatasetRepository } from "./LocalDatasetRepository.js";
 import { describeDatasetRepositoryContract } from "../contract/datasetRepository.contract.js";
 import {
   USERS,
